@@ -43,7 +43,11 @@ from web.backend.security import (
 
 app = FastAPI(title="WriterLM Studio API", version="0.1.0")
 
-os.load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env.backend"))
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env.backend"))
+except Exception:
+    pass
 
 origins = [
     origin.strip()
