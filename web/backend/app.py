@@ -45,7 +45,7 @@ app = FastAPI(title="WriterLM Studio API", version="0.1.0")
 
 origins = [
     origin.strip()
-    for origin in os.getenv("APP_CORS_ORIGINS", "http://localhost:5173,http://localhost:8080").split(",")
+    for origin in os.getenv("APP_CORS_ORIGINS", "http://localhost:5173,http://localhost:8080,https://writelm.anounman.de").split(",")
     if origin.strip()
 ]
 app.add_middleware(

@@ -211,31 +211,31 @@ export function CreatePage({ api, onCreated, onNotice }: CreatePageProps) {
                   <div>
                     <label className="text-xs font-medium text-muted-foreground block mb-1.5">Book Type</label>
                     <select className="w-full h-8 bg-input border border-input text-foreground rounded-md px-3 text-xs focus:ring-1 focus:ring-ring outline-none" value={request.book_type} onChange={e => setRequest(r => ({ ...r, book_type: e.target.value as any }))}>
-                      <option value="auto">Auto</option><option value="textbook">Textbook</option><option value="tutorial">Tutorial</option><option value="reference">Reference</option><option value="guide">Guide</option>
+                      <option value="auto">Auto</option><option value="textbook">Textbook</option><option value="practice_workbook">Practice Workbook</option><option value="course_companion">Course Companion</option><option value="implementation_guide">Implementation Guide</option><option value="reference_handbook">Reference Handbook</option><option value="conceptual_guide">Conceptual Guide</option><option value="exam_prep">Exam Prep</option>
                     </select>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground block mb-1.5">Theory/Practice</label>
                     <select className="w-full h-8 bg-input border border-input text-foreground rounded-md px-3 text-xs focus:ring-1 focus:ring-ring outline-none" value={request.theory_practice_balance} onChange={e => setRequest(r => ({ ...r, theory_practice_balance: e.target.value as any }))}>
-                      <option value="balanced">Balanced</option><option value="theory_heavy">Theory Heavy</option><option value="practice_heavy">Practice Heavy</option>
+                      <option value="auto">Auto</option><option value="theory_heavy">Theory Heavy</option><option value="balanced">Balanced</option><option value="practice_heavy">Practice Heavy</option><option value="implementation_heavy">Implementation Heavy</option>
                     </select>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground block mb-1.5">Pedagogy Style</label>
                     <select className="w-full h-8 bg-input border border-input text-foreground rounded-md px-3 text-xs focus:ring-1 focus:ring-ring outline-none" value={request.pedagogy_style} onChange={e => setRequest(r => ({ ...r, pedagogy_style: e.target.value as any }))}>
-                      <option value="auto">Auto</option><option value="conversational">Conversational</option><option value="academic">Academic</option><option value="direct">Direct</option><option value="socratic">Socratic</option>
+                      <option value="auto">Auto</option><option value="german_theoretical">German Theoretical</option><option value="indian_theory_then_examples">Indian (Theory then Examples)</option><option value="socratic">Socratic</option><option value="exam_oriented">Exam Oriented</option><option value="project_based">Project Based</option>
                     </select>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground block mb-1.5">Source Usage</label>
                     <select className="w-full h-8 bg-input border border-input text-foreground rounded-md px-3 text-xs focus:ring-1 focus:ring-ring outline-none" value={request.source_usage} onChange={e => setRequest(r => ({ ...r, source_usage: e.target.value as any }))}>
-                      <option value="auto">Auto</option><option value="strict">Strict</option><option value="liberal">Liberal</option>
+                      <option value="auto">Auto</option><option value="primary_curriculum">Primary Curriculum</option><option value="supplemental">Supplemental</option><option value="example_inspiration">Example Inspiration</option>
                     </select>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground block mb-1.5">Exercises</label>
                     <select className="w-full h-8 bg-input border border-input text-foreground rounded-md px-3 text-xs focus:ring-1 focus:ring-ring outline-none" value={request.exercise_strategy} onChange={e => setRequest(r => ({ ...r, exercise_strategy: e.target.value as any }))}>
-                      <option value="none">None</option><option value="extract_patterns">Extract Patterns</option><option value="create_new">Create New</option><option value="mixed">Mixed</option>
+                      <option value="auto">Auto</option><option value="none">None</option><option value="extract_patterns">Extract Patterns</option><option value="worked_examples">Worked Examples</option><option value="practice_sets">Practice Sets</option>
                     </select>
                   </div>
                 </div>
