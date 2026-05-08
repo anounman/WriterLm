@@ -43,6 +43,8 @@ from web.backend.security import (
 
 app = FastAPI(title="WriterLM Studio API", version="0.1.0")
 
+os.load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env.backend"))
+
 origins = [
     origin.strip()
     for origin in os.getenv("APP_CORS_ORIGINS", "http://localhost:5173,http://localhost:8080,https://writelm.anounman.de").split(",")
