@@ -2,19 +2,19 @@ import React from "react";
 import { BookOpen, Github, ChevronRight, Brain, FileText, Layers, Search, Code2, PenTool, Sparkles, Database } from "lucide-react";
 import { ThemeToggle, Button } from "@writerlm/ui";
 import { SignInButton, SignUpButton } from "@clerk/react";
-import { motion } from "motion/react";
+import { motion, Variants } from "motion/react";
 
 interface LandingPageProps {
   theme: "dark" | "light";
   onTheme: (theme: "dark" | "light") => void;
 }
 
-const fadeIn = {
+const fadeIn: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
