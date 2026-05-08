@@ -33,11 +33,12 @@ Here is the exact structure you MUST output:
   "diagram_density": "high | medium | low",
   "max_section_words": integer (150 to 2000, optional) or null,
   "force_web_research": boolean,
-  "urls": ["array of strings (URLs provided by the user)"],
+  "urls": ["array of strings (ONLY URLs EXPLICITLY PROVIDED in the user prompt. DO NOT invent or hallucinate URLs)"],
   "language_request": "string (optional language instruction) or null"
 }
 
 If a specific detail is missing from their prompt, infer a reasonable professional default based on the topic.
+CRITICAL INSTRUCTION: Under NO circumstances should you inject, invent, or hallucinate URLs. The "urls" array must ONLY contain URLs that the user literally pasted into their prompt. If no URLs are present in the text, return an empty array [].
 
 EXAMPLES:
 

@@ -276,11 +276,25 @@ export function CreatePage({ api, onCreated, onNotice }: CreatePageProps) {
                     <div key={f.name} className="flex items-center gap-2 px-3 py-2 rounded-md bg-secondary text-sm">
                       <FileText size={13} className="text-muted-foreground flex-none" />
                       <span className="flex-1 truncate text-foreground">{f.name}</span>
-                      <button onClick={() => removeFile(f.name)} className="text-muted-foreground hover:text-foreground flex-none"><X size={13} /></button>
+                      <button type="button" onClick={() => removeFile(f.name)} className="text-muted-foreground hover:text-foreground flex-none"><X size={13} /></button>
                     </div>
                   ))}
                 </div>
               )}
+              
+              {/* URL Input */}
+              <div className="mt-6 border-t border-border pt-5">
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5 flex items-center gap-2">
+                  <Globe size={13} /> Additional Web Sources
+                </label>
+                <textarea
+                  className="w-full bg-input border border-input rounded-md p-3 text-sm text-foreground focus:ring-1 focus:ring-ring outline-none min-h-[80px] resize-none"
+                  value={(request.urls || []).join("\n")}
+                  onChange={e => setRequest(r => ({ ...r, urls: e.target.value.split("\n").map(u => u.trim()).filter(Boolean) }))}
+                  placeholder="https://example.com/article&#10;https://arxiv.org/abs/1234"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1.5">Enter exactly one URL per line. These will be scraped directly.</p>
+              </div>
             </div>
           </Card>
         </div>
