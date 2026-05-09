@@ -7,6 +7,7 @@ from .book_contract import (
     classify_book_contract,
 )
 from .claim_validation import ClaimEvidenceReport, extract_claims, validate_claims
+from .scoring import QualityScore, compute_quality_score
 from .validator_registry import (
     ValidatorActivation,
     ValidatorReport,
@@ -21,9 +22,11 @@ __all__ = [
     "ClaimEvidenceReport",
     "ValidatorActivation",
     "ValidatorReport",
+    "QualityScore",
     "build_validator_registry",
     "classify_book_contract",
     "extract_claims",
     "select_validators",
     "validate_claims",
+    "compute_quality_score",
 ]

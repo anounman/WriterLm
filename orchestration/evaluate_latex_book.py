@@ -48,7 +48,10 @@ def evaluate_latex_book(path: Path, contract_path: Path | None = None) -> dict[s
     return {
         "input_path": str(path),
         "book_contract": contract.model_dump(mode="json"),
-        "activated_validators": [item.model_dump(mode="json") for item in activations],
+        "activated_validators": [
+            {"name": item.name, "reason": item.reason, "scope": item.scope}
+            for item in activations
+        ],
         "totals": totals,
         "quality_score": quality_score,
         "weak_section_count": len(weak_sections),
