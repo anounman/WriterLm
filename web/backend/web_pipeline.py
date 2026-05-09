@@ -521,7 +521,6 @@ def run_web_pipeline(
             "status": assembly_artifacts.assembly_bundle.metadata.assembly_status.value,
             "assembled_sections": assembly_artifacts.assembly_bundle.metadata.assembled_section_count,
             "flagged_sections": assembly_artifacts.assembly_bundle.metadata.flagged_sections,
-            "note": preparation_note,
         },
     )
 
