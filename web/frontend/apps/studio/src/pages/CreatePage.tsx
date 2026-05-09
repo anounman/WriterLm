@@ -185,6 +185,15 @@ export function CreatePage({ api, onCreated, onNotice }: CreatePageProps) {
                     placeholder="e.g. Kubernetes architecture for DevOps engineers"
                   />
                 </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Learning Goals & Constraints</label>
+                  <textarea
+                    className="w-full bg-input border border-input rounded-md p-3 text-sm text-foreground focus:ring-1 focus:ring-ring outline-none min-h-[80px] resize-none"
+                    value={goalText} onChange={e => setGoalText(e.target.value)}
+                    placeholder="e.g. Explain habits&#10;Avoid diagnosis or clinical claims&#10;Focus on practical study schedules"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1.5">One goal or constraint per line. These drive the automated quality validators.</p>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground block mb-1.5">Audience</label>
