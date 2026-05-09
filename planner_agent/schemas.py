@@ -342,7 +342,6 @@ class UserBookRequest(BaseModel):
         return (
             self.is_beginner_focused
             and self.is_practical_focused
-            and self.effective_book_type == "implementation_guide"
             and not self.wants_comprehensive_coverage
         )
 

@@ -102,6 +102,10 @@ TEMPLATE_PHRASES = (
     "in conclusion",
     "this section explores",
     "as an ai",
+    "the expected result is not just that the code runs",
+    "change one input, parameter, or file",
+    "this matters because each step should fail loudly and locally",
+    "the printed output is your first test",
 )
 
 

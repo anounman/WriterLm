@@ -13,7 +13,7 @@ interface ProgressPageProps {
   onNotice: (message: string) => void;
 }
 
-const STAGE_ORDER = ["planner_research", "notes_synthesis", "writer", "reviewer", "image_assets", "assembler", "latex_compile"];
+const STAGE_ORDER = ["planner_research", "notes_synthesis", "writer", "reviewer", "quality_checker", "image_assets", "assembler", "latex_compile"];
 
 function effectiveStatus(job: Job): JobStatus {
   const stages = Object.values(job.stages || {});

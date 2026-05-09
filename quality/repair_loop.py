@@ -42,7 +42,7 @@ FORBIDDEN_LINE_RE = re.compile(
     r"(?im)^\s*(?:QA gate found validation problems|Unresolved Gaps|TODO\b.*|FIXME\b.*|placeholder\b.*|citation needed\b.*|internal pipeline\b.*|debug message\b.*|validation failed\b.*)$"
 )
 FORBIDDEN_INLINE_RE = re.compile("|".join(re.escape(item) for item in FORBIDDEN_FINAL_STRINGS), re.I)
-TEMPLATE_FILLER_RE = re.compile(r"\b(?:it is important to note that|overall,?|in conclusion,?|this section explores|as an ai)\b", re.I)
+TEMPLATE_FILLER_RE = re.compile(r"\b(?:it is important to note that|overall,?|in conclusion,?|this section explores|as an ai|the expected result is not just that the code runs|change one input, parameter, or file|this matters because each step should fail loudly and locally|the printed output is your first test)\b", re.I)
 OVERCLAIM_REPLACEMENTS = (
     (re.compile(r"\bproves\b", re.I), "suggests"),
     (re.compile(r"\balways\b", re.I), "often"),

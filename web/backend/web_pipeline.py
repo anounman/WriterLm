@@ -109,6 +109,9 @@ def run_web_pipeline(
     from reviewer.schemas import ReviewBundle
     from writer.llm import GroqStructuredLLM as WriterGroqStructuredLLM
     from writer.schemas import WriterOutputBundle
+    from quality.book_contract import BookContract, classify_book_contract
+    from quality.repair_loop import run_quality_repair_loop
+    from quality.validator_registry import select_validators
 
     start_time = time.time()
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -167,7 +170,7 @@ def run_web_pipeline(
             save_book_plan(book_plan, book_plan_path)
             save_book_plan(book_plan, canonical_book_path)
         latex_path.write_text((resume_from_dir / "book.tex").read_text(encoding="utf-8"), encoding="utf-8")
-        for stage in ("planner_research", "notes_synthesis", "writer", "reviewer", "assembler"):
+        for stage in ("planner_research", "notes_synthesis", "writer", "reviewer", "quality_checker", "image_assets", "assembler"):
             progress(stage, "completed", details=resume_details)
 
     elif resume_checkpoint == "review_bundle":
@@ -474,6 +477,42 @@ def run_web_pipeline(
     if failed_section_count:
         failed_section_ids = section_pipeline_summary.get("failed_section_ids") or []
         raise RuntimeError(f"Section pipeline failed before assembly: {failed_section_ids}")
+
+    progress("quality_checker", "running")
+    stage_start = time.perf_counter()
+    
+    book_contract = None
+    if research_bundle_payload and "book_contract" in research_bundle_payload:
+        book_contract = BookContract.model_validate(research_bundle_payload["book_contract"])
+    else:
+        book_contract = classify_book_contract(planner_input, book_plan)
+        validator_activations = select_validators(book_contract)
+        book_contract.activated_validators = [item.name for item in validator_activations]
+        book_contract.validator_rationales = {item.name: item.reason for item in validator_activations}
+        write_json(run_dir / "book_contract.json", book_contract.model_dump(mode="json"))
+        if research_bundle_payload:
+            research_bundle_payload["book_contract"] = book_contract.model_dump(mode="json")
+            write_json(research_bundle_path, research_bundle_payload)
+
+    repair_result = run_quality_repair_loop(
+        review_bundle=review_bundle,
+        contract=book_contract,
+    )
+    review_bundle = repair_result.review_bundle
+    stage_timings["quality_checker"] = round(time.perf_counter() - stage_start, 2)
+    save_review_bundle(review_bundle, review_bundle_path)
+    qa_report_path = run_dir / "qa_report.json"
+    write_json(qa_report_path, repair_result.qa_report)
+    
+    progress(
+        "quality_checker", 
+        "completed", 
+        seconds=stage_timings["quality_checker"],
+        details={
+            "qa_score": repair_result.qa_report.get("overall_score"),
+            "issues_fixed": repair_result.qa_report.get("issues_fixed", 0)
+        }
+    )
 
     progress("image_assets", "running")
     stage_start = time.perf_counter()

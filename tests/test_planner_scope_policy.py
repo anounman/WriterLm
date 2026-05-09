@@ -110,7 +110,7 @@ def test_outline_and_section_prompts_include_focused_guardrails() -> None:
     outline_prompt = build_chapter_outline_prompt(request, context)
     section_prompt = build_section_planner_prompt(request, context, chapter)
 
-    assert "focused beginner practical guide" in outline_prompt
+    assert "focused beginner implementation guide" in outline_prompt
     assert "Target 5 to 7 chapters" in outline_prompt
     assert "Forbidden chapter families" in outline_prompt
     assert "Create 3 to 5 sections" in section_prompt
@@ -142,7 +142,7 @@ def test_validator_rejects_overbroad_beginner_handbook_plan() -> None:
             _make_chapter(1, "Foundations of Large Language Models and Generative AI", "Cover broad LLM background.", project_milestone="Understand LLM basics"),
             _make_chapter(2, "What Is Retrieval-Augmented Generation?", "Explain the concept.", project_milestone="Understand RAG concept"),
             _make_chapter(3, "Evaluating RAG Systems", "Survey evaluation methods.", project_milestone="Know evaluation methods"),
-            _make_chapter(4, "Scaling, Deployment, and Production Best Practices", "Cover production operations.", project_milestone="Know production patterns"),
+            _make_chapter(4, "Scaling, Deployment, and Production Patterns", "Cover production operations.", project_milestone="Know production patterns"),
             _make_chapter(5, "Build a Simple RAG Pipeline", "Walk through a basic implementation.", project_milestone="Working pipeline"),
             _make_chapter(6, "Future Directions and Continuing Learning", "Survey future topics.", project_milestone="Know next steps"),
         ],

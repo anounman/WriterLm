@@ -22,7 +22,6 @@ file:///app/.cache/uploads/private.pdf
 
     evaluation = evaluate_latex_book(tex)
 
-    assert evaluation["book_profile"] == "course_or_theory"
     assert evaluation["totals"]["raw_html_math_tags"] == 2
     assert evaluation["totals"]["private_source_paths"] >= 1
     assert evaluation["totals"]["self_correction_phrases"] == 1

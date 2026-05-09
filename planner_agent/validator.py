@@ -39,7 +39,6 @@ PRACTICAL_PAYOFF_PATTERNS = (
     "fine-tune",
     "fine tuning",
     "fine-tuning",
-    "model",
     "hands-on",
     "worked example",
     "practice",

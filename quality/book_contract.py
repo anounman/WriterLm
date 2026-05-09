@@ -270,8 +270,13 @@ def _joined_text(*objects: Any) -> str:
     return " ".join(chunks).casefold()
 
 
+import re
+
 def _has_any(text: str, signals: tuple[str, ...]) -> bool:
-    return any(signal in text for signal in signals)
+    for signal in signals:
+        if re.search(r"\b" + re.escape(signal) + r"\b", text, re.I):
+            return True
+    return False
 
 
 def _detect_domain(text: str) -> str:
