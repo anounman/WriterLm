@@ -292,6 +292,44 @@ def _extract_evidence_statements(evidence_items: Any) -> List[str]:
     return _dedupe_preserve_order(output)[:MAX_EVIDENCE_ITEMS]
 
 
+def _extract_knowledge_map_statements(knowledge_map: Any) -> tuple[list[str], list[str], list[str], list[str]]:
+    if not isinstance(knowledge_map, dict):
+        return [], [], [], []
+
+    evidence: list[str] = []
+    concepts: list[str] = []
+    guidance: list[str] = []
+    questions: list[str] = []
+
+    def read_items(key: str, prefix: str) -> None:
+        raw_items = knowledge_map.get(key)
+        if not isinstance(raw_items, list):
+            return
+        for item in raw_items:
+            if not isinstance(item, dict):
+                continue
+            content = _as_clean_string(item.get("content"))
+            label = _as_clean_string(item.get("label"))
+            source_ids = _extract_list_of_strings(item.get("supporting_source_ids"))
+            uncertainty = _as_clean_string(item.get("uncertainty_flag"))
+            if content:
+                support = f" | sources: {', '.join(source_ids)}" if source_ids else ""
+                caveat = f" | uncertainty: {uncertainty}" if uncertainty else ""
+                evidence.append(_clip_text(f"{prefix}: {label or key}: {content}{support}{caveat}", MAX_EVIDENCE_ITEM_CHARS))
+            if label:
+                concepts.append(label)
+
+    read_items("key_claims", "claim")
+    read_items("definitions", "definition")
+    read_items("examples", "example")
+    read_items("conflicting_viewpoints", "conflict")
+
+    guidance.extend(_extract_list_of_strings(knowledge_map.get("recommended_framing")))
+    guidance.extend(f"Uncertainty: {item}" for item in _extract_list_of_strings(knowledge_map.get("uncertainty_flags")))
+    questions.extend(_extract_list_of_strings(knowledge_map.get("open_questions")))
+    return evidence, concepts, guidance, questions
+
+
 def build_section_synthesis_input(
     planner_section: Dict[str, Any],
     research_section: Dict[str, Any],
@@ -323,19 +361,25 @@ def build_section_synthesis_input(
     if not section_objective:
         raise ValueError(f"Missing section_objective for section_id={section_id!r}.")
 
-    key_concepts = _extract_list_of_strings(
+    km_evidence, km_concepts, km_guidance, km_questions = _extract_knowledge_map_statements(
+        research_section.get("knowledge_map")
+    )
+
+    key_concepts = _dedupe_preserve_order(_extract_list_of_strings(
         research_section.get("key_concepts") or planner_section.get("key_concepts")
-    )[:MAX_KEY_CONCEPTS]
+    ) + km_concepts)[:MAX_KEY_CONCEPTS]
 
-    writing_guidance = _extract_list_of_strings(research_section.get("writing_guidance"))[
-        :MAX_WRITING_GUIDANCE_ITEMS
-    ]
+    writing_guidance = _dedupe_preserve_order(
+        _extract_list_of_strings(research_section.get("writing_guidance")) + km_guidance
+    )[:MAX_WRITING_GUIDANCE_ITEMS]
 
-    open_questions = _extract_list_of_strings(research_section.get("open_questions"))[
-        :MAX_OPEN_QUESTIONS
-    ]
+    open_questions = _dedupe_preserve_order(
+        _extract_list_of_strings(research_section.get("open_questions")) + km_questions
+    )[:MAX_OPEN_QUESTIONS]
 
-    evidence_items = _extract_evidence_statements(research_section.get("evidence_items"))
+    evidence_items = _dedupe_preserve_order(
+        _extract_evidence_statements(research_section.get("evidence_items")) + km_evidence
+    )[:MAX_EVIDENCE_ITEMS]
 
     coverage_signal = _normalize_coverage_signal(research_section.get("coverage_report"))
 
@@ -356,6 +400,8 @@ def build_section_synthesis_input(
     continuity_rules: list[str] = []
     chapter_dependencies: list[str] = []
     implementation_strategy = None
+    progression_strategy = None
+    book_contract: dict[str, Any] = {}
 
     if isinstance(content_reqs, dict):
         must_include_code = bool(content_reqs.get("must_include_code", False))
@@ -368,6 +414,10 @@ def build_section_synthesis_input(
         continuity_rules = _extract_list_of_strings(book_state.get("continuity_rules"))
         chapter_dependencies = _extract_list_of_strings(book_state.get("chapter_dependencies"))
         implementation_strategy = _as_clean_string(book_state.get("implementation_strategy"))
+        progression_strategy = _as_clean_string(book_state.get("progression_strategy"))
+        raw_contract = book_state.get("book_contract")
+        if isinstance(raw_contract, dict):
+            book_contract = raw_contract
 
     return SectionSynthesisInput(
         section_id=section_id,
@@ -388,4 +438,6 @@ def build_section_synthesis_input(
         continuity_rules=continuity_rules,
         chapter_dependencies=chapter_dependencies,
         implementation_strategy=implementation_strategy,
+        progression_strategy=progression_strategy,
+        book_contract=book_contract,
     )

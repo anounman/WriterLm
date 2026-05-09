@@ -133,6 +133,8 @@ def _attach_book_state(task: NotesSynthesizerSectionTask, book_state: BookState)
         section_title=task.section_title,
         chapter_title=chapter_title,
     )
+    if book_state.book_contract is not None:
+        planner_section["book_contract"] = book_state.book_contract.model_dump(mode="json")
     task.planner_section_ref = planner_section
     return task
 

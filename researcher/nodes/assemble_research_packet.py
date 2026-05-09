@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from researcher.schemas import SectionResearchPacket
+from researcher.schemas import EvidenceType, KnowledgeMapItem, SectionKnowledgeMap, SectionResearchPacket
 from researcher.state import ResearcherState
 from researcher.utils.ids import make_packet_id
 
@@ -41,6 +41,7 @@ class AssembleResearchPacketNode:
         key_concepts = self._derive_key_concepts(state)
         open_questions = self._derive_open_questions(state)
         writing_guidance = self._build_writing_guidance(state)
+        knowledge_map = self._build_knowledge_map(state)
 
         state.research_packet = SectionResearchPacket(
             packet_id=make_packet_id(section.section_id),
@@ -56,11 +57,79 @@ class AssembleResearchPacketNode:
                 for source in state.source_registry
                 if source.evidence_ids and not any("fetch_failed" in note for note in source.reliability_notes)
             ],
+            knowledge_map=knowledge_map,
             coverage_report=state.coverage_report,
             open_questions=open_questions,
             writing_guidance=writing_guidance,
         )
         return state
+
+    def _build_knowledge_map(self, state: ResearcherState) -> SectionKnowledgeMap:
+        source_lookup = {
+            source.source_id: source
+            for source in state.source_registry
+        }
+
+        key_claims: list[KnowledgeMapItem] = []
+        definitions: list[KnowledgeMapItem] = []
+        examples: list[KnowledgeMapItem] = []
+        conflicting_viewpoints: list[KnowledgeMapItem] = []
+        uncertainty_flags: list[str] = []
+
+        for index, evidence in enumerate(state.evidence_items[:20], start=1):
+            source = source_lookup.get(evidence.source_id)
+            item = KnowledgeMapItem(
+                label=(evidence.tags[0] if evidence.tags else evidence.evidence_type.value),
+                content=self._clean_text(evidence.summary or evidence.content),
+                supporting_source_ids=[evidence.source_id] if evidence.source_id else [],
+                source_reliability=self._source_reliability_note(source),
+                source_freshness=self._source_freshness_note(source),
+                uncertainty_flag="low confidence extraction" if evidence.confidence < 0.55 else None,
+            )
+            if item.uncertainty_flag:
+                uncertainty_flags.append(f"{item.label}: {item.uncertainty_flag}")
+
+            if evidence.evidence_type == EvidenceType.DEFINITION:
+                definitions.append(item)
+            elif evidence.evidence_type in {EvidenceType.EXAMPLE, EvidenceType.CASE_STUDY}:
+                examples.append(item)
+            elif evidence.evidence_type in {EvidenceType.WARNING, EvidenceType.INSIGHT}:
+                conflicting_viewpoints.append(item)
+            else:
+                key_claims.append(item)
+
+        if state.coverage_report is not None:
+            uncertainty_flags.extend(
+                f"Coverage gap: {self._clean_text(topic)}"
+                for topic in state.coverage_report.missing_topics
+                if self._clean_text(topic)
+            )
+
+        return SectionKnowledgeMap(
+            key_claims=key_claims[:10],
+            definitions=definitions[:8],
+            examples=examples[:8],
+            conflicting_viewpoints=conflicting_viewpoints[:6],
+            open_questions=self._derive_open_questions(state),
+            uncertainty_flags=self._clean_list(uncertainty_flags)[:8],
+            recommended_framing=self._build_writing_guidance(state)[:8],
+        )
+
+    def _source_reliability_note(self, source) -> str | None:
+        if source is None:
+            return None
+        if source.quality_score is not None:
+            return f"quality_score={source.quality_score:.2f}"
+        if source.reliability_notes:
+            return "; ".join(source.reliability_notes[:2])
+        return source.source_type.value
+
+    def _source_freshness_note(self, source) -> str | None:
+        if source is None:
+            return None
+        if source.metadata and source.metadata.get("published_date"):
+            return str(source.metadata["published_date"])
+        return None
 
     def _derive_key_concepts(self, state: ResearcherState) -> list[str]:
         """

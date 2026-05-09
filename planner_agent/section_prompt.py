@@ -34,7 +34,9 @@ CONTENT REQUIREMENTS (CRITICAL):
   - must_include_diagram: true/false — whether the section needs a diagram or visualization
   - suggested_diagram_type: null or a string like "flowchart", "architecture", "comparison_table", "sequence_diagram", "data_flow"
 - For implementation-oriented software chapters: MOST sections should have must_include_code = true.
-- For math/course/theory chapters: use worked examples and diagrams/visual intuition; do not add code unless explicitly useful.
+- For non-software chapters: do not add code unless the topic explicitly requires programming, commands, formulas-as-code, or computational examples.
+- For math/course/theory chapters: use worked examples, concept maps, tables, diagrams, or visual intuition; do not add code unless explicitly useful.
+- For philosophy/history/psychology/business chapters: prefer argument maps, timelines, evidence maps, process flows, decision trees, examples, cases, or comparison matrices as appropriate.
 - For conceptual sections: must_include_example should be true and consider must_include_diagram = true.
 - NO section should have ALL three set to false. Every section must include at least one of: code, example, or diagram.
 
@@ -121,20 +123,20 @@ def build_section_planner_prompt(
         implementation_guidance = (
         "- This chapter is implementation-oriented. Make sections concrete and sequential, such as setup, architecture, build steps, debugging, and improvement.\n"
         "- MOST sections in this chapter MUST have must_include_code = true.\n"
-        "- At least one section should have must_include_diagram = true (e.g., architecture or data flow)."
+        "- At least one section should have a useful structured visual when it clarifies architecture, process, dependency, or validation."
         )
     elif request.effective_book_type in {"textbook", "course_companion", "practice_workbook", "exam_prep"}:
         implementation_guidance = (
             "- This is a textbook/course/practice chapter. Make sections progress through theory, worked examples, and practice.\n"
             "- Prefer must_include_example = true for worked problems or concrete examples.\n"
             "- Set must_include_code = true only if the topic explicitly requires programming.\n"
-            "- Use diagrams for conceptual maps, graphs, tables, geometry, or visual intuition where useful."
+        "- Use diagrams/tables for conceptual maps, graphs, timelines, argument maps, tables, geometry, or visual intuition where useful."
         )
     else:
         implementation_guidance = (
-            "- Keep sections concrete and directly useful to the stated chapter goal.\n"
-        "- Conceptual sections MUST have must_include_example = true.\n"
-        "- At least one section per chapter should have must_include_diagram = true."
+        "- Keep sections concrete and directly useful to the stated chapter goal.\n"
+        "- Conceptual sections should usually have must_include_example = true.\n"
+        "- Use must_include_diagram = true only when a structured visual would add value."
         )
 
     content_density = request.content_density
@@ -142,7 +144,7 @@ def build_section_planner_prompt(
 CONTENT DENSITY TARGETS:
 - Code density: {content_density.code_density} — {"set must_include_code = true for every section only for programming/software content" if content_density.code_density == "high" else "set must_include_code = true for most implementation sections only when the topic requires code" if content_density.code_density == "medium" else "set must_include_code = true only where essential"}
 - Example density: {content_density.example_density} — {"set must_include_example = true for every section" if content_density.example_density == "high" else "set must_include_example = true for most sections" if content_density.example_density == "medium" else "set must_include_example = true where helpful"}
-- Diagram density: {content_density.diagram_density} — {"set must_include_diagram = true for every section" if content_density.diagram_density == "high" else "set must_include_diagram = true for at least one section per chapter" if content_density.diagram_density == "medium" else "set must_include_diagram = true for key concept sections only"}
+- Diagram density: {content_density.diagram_density} — {"set must_include_diagram = true wherever structured visuals add clear value" if content_density.diagram_density == "high" else "set must_include_diagram = true for the highest-value visual moments, not as filler" if content_density.diagram_density == "medium" else "set must_include_diagram = true for key concept sections only"}
 - HARD RULE: No section may have ALL three (must_include_code, must_include_example, must_include_diagram) set to false.
 """
 
@@ -211,7 +213,7 @@ IMPORTANT CONSTRAINTS:
 {implementation_guidance}
 - For uploaded exercise sheets, create sections that teach the underlying method and include original source-inspired worked examples or practice prompts.
 - Every section must have title, goal, key_questions, estimated_words, and content_requirements.
-- Use builds_on to chain sections that form a progressive build sequence.
+- Use builds_on to chain sections that form a progressive build sequence, argument sequence, chronology, workflow, or learning scaffold.
 - Return only this chapter's section plan.
 - Do not create sections for any other chapter.
 

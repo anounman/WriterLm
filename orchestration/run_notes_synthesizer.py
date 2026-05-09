@@ -55,6 +55,7 @@ def build_tasks_from_research_bundle(
     tasks: list[NotesSynthesizerSectionTask] = []
 
     book_plan = bundle.get("book_plan") or {}
+    book_contract = bundle.get("book_contract") if isinstance(bundle.get("book_contract"), dict) else {}
     planner_chapters = book_plan.get("chapters") if isinstance(book_plan, dict) else []
     chapter_map: dict[str, dict[str, Any]] = {}
     planner_section_map: dict[str, dict[str, Any]] = {}
@@ -90,7 +91,7 @@ def build_tasks_from_research_bundle(
                     "chapter_goal": chapter_goal,
                     "key_concepts": _as_string_list(section.get("key_questions")),
                     "content_requirements": section.get("content_requirements") or {},
-                    "book_state": book_state or {},
+                    "book_state": book_state or {"book_contract": book_contract},
                 }
 
     chapters = bundle.get("chapters")
@@ -129,7 +130,7 @@ def build_tasks_from_research_bundle(
                     "chapter_title": chapter_title,
                     "chapter_id": chapter_id,
                     "key_concepts": [],
-                    "book_state": book_state or {},
+                    "book_state": book_state or {"book_contract": book_contract},
                 }
 
             research_section = {
@@ -138,6 +139,7 @@ def build_tasks_from_research_bundle(
                 "section_objective": objective or planner_section.get("section_objective") or "No section objective available.",
                 "key_concepts": _as_string_list(packet.get("key_concepts")),
                 "evidence_items": packet.get("evidence_items") if isinstance(packet.get("evidence_items"), list) else [],
+                "knowledge_map": packet.get("knowledge_map") if isinstance(packet.get("knowledge_map"), dict) else {},
                 "writing_guidance": _as_string_list(packet.get("writing_guidance")),
                 "open_questions": _as_string_list(packet.get("open_questions")),
                 "coverage_report": packet.get("coverage_report"),

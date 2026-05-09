@@ -74,6 +74,8 @@ def build_reviewer_tasks(
             allowed_citation_source_ids=list(note_section.allowed_citation_source_ids),
             must_include_code=getattr(note_section, "must_include_code", False),
             must_include_diagram=getattr(note_section, "must_include_diagram", False),
+            book_contract=getattr(note_section, "book_contract", {}) or {},
+            progression_strategy=getattr(note_section, "progression_strategy", None),
             writer_content=writer_section.content,
             writer_citations_used=list(writer_section.citations_used),
             writer_code_blocks_count=getattr(writer_section, "code_blocks_count", 0),

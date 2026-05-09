@@ -39,6 +39,9 @@ from orchestration.parallel_section_pipeline import (
     ParallelSectionPipelineConfig,
     run_parallel_section_pipeline,
 )
+from quality.book_contract import classify_book_contract
+from quality.repair_loop import run_quality_repair_loop
+from quality.validator_registry import select_validators
 from orchestration.run_assembler_only import resolve_book_plan_for_review
 from orchestration.run_notes_synthesizer import build_tasks_from_research_bundle
 from orchestration.run_writer import build_tasks_from_notes_bundle
@@ -93,6 +96,8 @@ WRITER_BUNDLE_OUTPUT_PATH = OUTPUTS_DIR / "writer_bundle.json"
 REVIEW_BUNDLE_OUTPUT_PATH = OUTPUTS_DIR / "review_bundle.json"
 SECTION_PIPELINE_SUMMARY_OUTPUT_PATH = OUTPUTS_DIR / "section_pipeline_summary.json"
 BOOK_STATE_OUTPUT_PATH = OUTPUTS_DIR / "book_state.json"
+BOOK_CONTRACT_OUTPUT_PATH = OUTPUTS_DIR / "book_contract.json"
+QA_REPORT_OUTPUT_PATH = OUTPUTS_DIR / "qa_report.json"
 ASSEMBLY_BUNDLE_OUTPUT_PATH = OUTPUTS_DIR / "assembly_bundle.json"
 LATEX_OUTPUT_PATH = OUTPUTS_DIR / "book.tex"
 LATEX_BUILD_DIR = OUTPUTS_DIR / "latex_build"
@@ -366,6 +371,8 @@ def build_summary(
             "review_bundle": str(REVIEW_BUNDLE_OUTPUT_PATH),
             "section_pipeline_summary": str(SECTION_PIPELINE_SUMMARY_OUTPUT_PATH),
             "book_state": str(book_state_path) if book_state_path else None,
+            "book_contract": str(BOOK_CONTRACT_OUTPUT_PATH),
+            "qa_report": str(QA_REPORT_OUTPUT_PATH),
             "assembly_bundle": str(ASSEMBLY_BUNDLE_OUTPUT_PATH),
             "latex_manuscript": str(LATEX_OUTPUT_PATH),
             "latex_compile_result": str(LATEX_COMPILE_RESULT_OUTPUT_PATH),
@@ -432,17 +439,28 @@ def main() -> None:
     research_bundle = pipeline.run(planner_input)
     stage_timings["planner_research"] = round(time.perf_counter() - stage_start, 2)
     book_plan = research_bundle.book_plan
+    book_contract = classify_book_contract(planner_input, book_plan)
+    validator_activations = select_validators(book_contract)
+    book_contract.activated_validators = [item.name for item in validator_activations]
+    book_contract.validator_rationales = {item.name: item.reason for item in validator_activations}
 
     save_book_plan(book_plan, run_dir / "book_plan.json")
     save_book_plan(book_plan, BOOK_PLAN_OUTPUT_PATH)
     save_book_plan(book_plan, CANONICAL_BOOK_PATH)
 
     research_bundle_payload = research_bundle.model_dump(mode="json")
+    research_bundle_payload["book_contract"] = book_contract.model_dump(mode="json")
     save_json_to_run_and_outputs(
         relative_name="research_bundle.json",
         data=research_bundle_payload,
         run_dir=run_dir,
         output_path=RESEARCH_BUNDLE_OUTPUT_PATH,
+    )
+    save_json_to_run_and_outputs(
+        relative_name="book_contract.json",
+        data=book_contract.model_dump(mode="json"),
+        run_dir=run_dir,
+        output_path=BOOK_CONTRACT_OUTPUT_PATH,
     )
 
     book_state_path: Path | None = None
@@ -587,6 +605,18 @@ def main() -> None:
         data=writer_bundle_payload,
         run_dir=run_dir,
         output_path=WRITER_BUNDLE_OUTPUT_PATH,
+    )
+
+    repair_result = run_quality_repair_loop(
+        review_bundle=review_bundle,
+        contract=book_contract,
+    )
+    review_bundle = repair_result.review_bundle
+    save_json_to_run_and_outputs(
+        relative_name="qa_report.json",
+        data=repair_result.qa_report,
+        run_dir=run_dir,
+        output_path=QA_REPORT_OUTPUT_PATH,
     )
 
     save_review_bundle(review_bundle, run_dir / "review_bundle.json")

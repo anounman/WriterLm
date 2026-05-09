@@ -239,6 +239,25 @@ class EvidenceItem(BaseModel):
     )
 
 
+class KnowledgeMapItem(BaseModel):
+    label: str
+    content: str
+    supporting_source_ids: List[str] = Field(default_factory=list)
+    source_reliability: Optional[str] = None
+    source_freshness: Optional[str] = None
+    uncertainty_flag: Optional[str] = None
+
+
+class SectionKnowledgeMap(BaseModel):
+    key_claims: List[KnowledgeMapItem] = Field(default_factory=list)
+    definitions: List[KnowledgeMapItem] = Field(default_factory=list)
+    examples: List[KnowledgeMapItem] = Field(default_factory=list)
+    conflicting_viewpoints: List[KnowledgeMapItem] = Field(default_factory=list)
+    open_questions: List[str] = Field(default_factory=list)
+    uncertainty_flags: List[str] = Field(default_factory=list)
+    recommended_framing: List[str] = Field(default_factory=list)
+
+
 # =========================================================
 # Coverage / reflexion
 # =========================================================
@@ -282,6 +301,14 @@ class SectionResearchPacket(BaseModel):
     key_concepts: List[str] = Field(default_factory=list)
     evidence_items: List[EvidenceItem] = Field(default_factory=list)
     sources: List[SourceRegistryEntry] = Field(default_factory=list)
+    knowledge_map: SectionKnowledgeMap = Field(
+        default_factory=SectionKnowledgeMap,
+        description=(
+            "Source-grounded synthesis map for this section: key claims, supporting "
+            "sources, reliability/freshness notes, definitions, examples, conflicts, "
+            "open questions, uncertainty flags, and recommended framing."
+        ),
+    )
 
     coverage_report: Optional[CoverageReport] = None
     open_questions: List[str] = Field(default_factory=list)

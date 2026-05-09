@@ -201,6 +201,10 @@ def normalize_section_note(
             note.chapter_dependencies = list(synthesis_input.chapter_dependencies)
         if note.implementation_strategy is None:
             note.implementation_strategy = synthesis_input.implementation_strategy
+        if note.progression_strategy is None:
+            note.progression_strategy = synthesis_input.progression_strategy
+        if not note.book_contract:
+            note.book_contract = dict(synthesis_input.book_contract)
 
     # --- source links for further reading ---
     if synthesis_input is not None and not note.reference_links:

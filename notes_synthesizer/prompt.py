@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from .schemas import SectionSynthesisInput
 
 NOTES_SYNTHESIZER_SYSTEM_PROMPT = """
@@ -48,11 +50,11 @@ Depth and quality rules (CRITICAL):
 ---
 
 CODE EXTRACTION (CRITICAL FOR PRACTICAL BOOKS):
-- Extract or synthesize code_snippets from evidence when the section involves implementation.
+- Extract or synthesize code_snippets from evidence only when the Book Contract or section requirements indicate code is appropriate.
 - Each code snippet must have: language, description, code, and source_ids.
 - Code should be practical, runnable, and focused on one concept.
 - If must_include_code is true but no code is found in evidence, synthesize a minimal illustrative snippet based on the concepts described. Mark source_ids as empty.
-- Prefer Python code unless the topic requires another language.
+- Do not default to Python, AWS, ML, cloud, or programming assumptions when the Book Contract is non-technical.
 - Keep snippets concise (5-30 lines). Not full programs, just the key logic.
 
 ---
@@ -66,8 +68,8 @@ DIAGRAM SUGGESTIONS (CRITICAL FOR VISUAL LEARNING):
 
 ---
 
-IMPLEMENTATION STEPS:
-- When the section involves building something, produce implementation_steps.
+- PROCEDURES AND ACTION STEPS:
+- When the section involves building, applying, studying, analyzing, or practicing something, produce implementation_steps as reader action steps.
 - Each step must have: step_number, action, detail, has_code.
 - Steps should be sequential and actionable.
 - This helps the Writer produce a step-by-step walkthrough.
@@ -118,7 +120,7 @@ Output quality rules:
 
 Book continuity rules:
 - Continue the same book, not an isolated standalone article.
-- Respect the provided book_state_summary, continuity_rules, chapter_dependencies, and implementation strategy.
+- Respect the provided Book Contract, book_state_summary, continuity_rules, chapter_dependencies, and progression strategy.
 - Reuse established terminology and assumptions when they are already part of the live manuscript state.
 - If the book is project-based, keep the same running project or running example unless the planner explicitly advances it.
 - If you detect a continuity risk, record it in writer_guidance or unresolved_gaps instead of silently changing direction.
@@ -130,6 +132,7 @@ Failure modes to avoid:
 - Repetition of the same idea across multiple fields
 - Overconfident claims with weak evidence
 - Empty or vague core_points
+- Non-technical sections polluted with code-oriented assumptions
 - Sections with must_include_code=true but no code_snippets
 - Sections with must_include_diagram=true but no diagram_suggestions
 - Pure-text notes when practical content is available
@@ -193,6 +196,8 @@ CONTENT REQUIREMENTS FROM PLANNER:
 - must_include_diagram: {str(must_diagram).lower()}
 - suggested_diagram_type: {suggested_diagram or 'none'}
 """
+    contract = section_input.book_contract or {}
+    contract_text = json.dumps(contract, ensure_ascii=False, indent=2) if contract else "{}"
 
     return f"""
 SYNTHESIZE SECTION NOTES
@@ -234,6 +239,12 @@ Chapter Dependencies:
 Implementation Strategy:
 {section_input.implementation_strategy or 'None'}
 
+Progression Strategy:
+{section_input.progression_strategy or 'None'}
+
+Book Contract:
+{contract_text}
+
 Task:
 Create a compact, writer-ready section note artifact.
 
@@ -245,7 +256,7 @@ Instructions:
 - Keep only the best examples.
 - Preserve important caveats.
 - Preserve unresolved gaps when support is partial or weak.
-- Recommend a practical flow for the downstream Writer.
+- Recommend a flow for the downstream Writer that matches the Book Contract: argument, chronology, workflow, project, textbook, exam prep, or research synthesis as appropriate.
 - Keep source usage restricted to the allowed citation source IDs only.
 - Include 2-5 useful reference_links from Source References when URLs are available.
 - Be conservative when evidence is incomplete.
@@ -254,7 +265,8 @@ PRACTICAL CONTENT INSTRUCTIONS:
 - If must_include_code is true: extract or synthesize at least one code_snippet. Code must be runnable and focused.
 - If must_include_diagram is true: produce at least one diagram_suggestion with type, title, description, and elements.
 - When the section involves building something: produce implementation_steps with sequential, actionable steps.
-- Always include code_snippets and diagram_suggestions when they would help the reader understand, even if not strictly required.
+- Include code_snippets only when the topic and Book Contract genuinely call for code.
+- Always include diagram_suggestions when they would help the reader understand, but choose domain-appropriate types such as concept maps, timelines, argument maps, process flows, comparison matrices, system diagrams, decision trees, or learning roadmaps.
 - Set must_include_code and must_include_diagram on the output to match the planner requirements.
-- Copy book_state_summary, continuity_rules, chapter_dependencies, and implementation_strategy into the output so the Writer preserves the same manuscript state.
+- Copy book_state_summary, continuity_rules, chapter_dependencies, implementation_strategy, progression_strategy, and book_contract into the output so the Writer preserves the same manuscript state.
 """.strip()

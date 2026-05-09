@@ -58,6 +58,24 @@ class QualityScores(BaseModel):
         le=10,
         description="1-10: Does the section use diagrams/visuals effectively? 10 = key concepts are visualized.",
     )
+    source_grounding_score: int = Field(
+        default=6,
+        ge=1,
+        le=10,
+        description="1-10: Are important claims supported at the evidence level required by the Book Contract?",
+    )
+    continuity_score: int = Field(
+        default=6,
+        ge=1,
+        le=10,
+        description="1-10: Does this section preserve the book's thesis, terminology, examples, and progression?",
+    )
+    domain_fit_score: int = Field(
+        default=6,
+        ge=1,
+        le=10,
+        description="1-10: Does this section fit the contract's domain and avoid irrelevant validators or examples?",
+    )
 
 
 class ReviewerSectionInput(BaseModel):
@@ -84,6 +102,11 @@ class ReviewerSectionInput(BaseModel):
     # --- Content requirement flags ---
     must_include_code: bool = Field(default=False)
     must_include_diagram: bool = Field(default=False)
+    book_contract: dict = Field(
+        default_factory=dict,
+        description="Persistent Book Contract used to choose domain-appropriate review checks.",
+    )
+    progression_strategy: Optional[str] = Field(default=None)
 
     writer_content: str
     writer_citations_used: List[str] = Field(default_factory=list)

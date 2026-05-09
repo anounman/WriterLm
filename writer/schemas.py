@@ -110,6 +110,14 @@ class WriterSectionInput(BaseModel):
         default=None,
         description="Chosen implementation/story strategy for the full manuscript.",
     )
+    progression_strategy: Optional[str] = Field(
+        default=None,
+        description="Domain-neutral continuity strategy: argument, chronology, project, workflow, or learning sequence.",
+    )
+    book_contract: dict = Field(
+        default_factory=dict,
+        description="Persistent Book Contract used to adapt writing and validation.",
+    )
 
 
 # -----------------------------

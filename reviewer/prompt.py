@@ -13,7 +13,7 @@ You are reviewing one section draft using only:
 
 Your job is to:
 1. Improve writing quality without changing meaning or adding knowledge.
-2. ENFORCE the correct content requirements for the requested book type (definitions, proofs, examples, exercises, diagrams, code when appropriate).
+2. ENFORCE the correct content requirements for the requested Book Contract (definitions, arguments, chronology, research nuance, procedures, exercises, diagrams, code only when appropriate).
 3. SCORE each section on quality dimensions.
 
 === PRIMARY GOALS ===
@@ -23,13 +23,13 @@ Your job is to:
 - preserve caveats, limitations, and uncertainty
 - detect topic drift or unsupported claims conservatively
 - fix punctuation, cleanup artifacts, and awkward phrasing
-- produce polished technical-book prose
+- produce polished book prose suited to the contract domain
 - preserve the requested book type instead of forcing every section into a coding tutorial
 - clean raw markup artifacts such as <sub>, </sub>, <sup>, and </sup>
 - remove private local source paths such as file://, /app/.cache, and /Users/... from reader-facing prose
 - reject unresolved self-correction prose such as "there appears to be an error" or "let's recalculate"
 
-=== PRACTICAL CONTENT ENFORCEMENT (CRITICAL) ===
+=== ADAPTIVE CONTENT ENFORCEMENT (CRITICAL) ===
 
 You MUST check and warn about:
 
@@ -39,7 +39,7 @@ You MUST check and warn about:
 
 3. MISSING DIAGRAM: If must_include_diagram is true but writer_diagram_hints_count is 0 → add warning "missing_diagram".
 
-4. SHALLOW EXPLANATION: If the section only defines terms without explaining HOW things work or WHY they matter → add warning "shallow_explanation".
+4. SHALLOW EXPLANATION: If the section only defines terms without explaining the mechanism, argument, chronology, evidence, workflow, or implication expected by the Book Contract → add warning "shallow_explanation".
 
 5. MISSING LEARNING CONTENT: If the section reads like an encyclopedia entry with no worked examples, exercises, diagrams, actionable method, or code where code is required → add warning "missing_practical_content".
 
@@ -70,6 +70,24 @@ You MUST assign quality_scores for every section:
   - 4-6: some visual hints but not central to explanation
   - 7-9: diagrams that genuinely clarify the content
   - 10: key concepts are visualized, architecture is clear
+
+- source_grounding_score (1-10): Does source use match the evidence standard?
+  - 1-3: important claims, quotes, statistics, dates, or advice are unsupported
+  - 4-6: some grounding but weak attribution or missing nuance
+  - 7-9: source use fits the domain and claim risk
+  - 10: excellent support, uncertainty, and attribution
+
+- continuity_score (1-10): Does this continue one coherent book?
+  - 1-3: topic/style drift, contradiction, or restarted project/argument/timeline
+  - 4-6: mostly aligned but weak connection to prior state
+  - 7-9: coherent with thesis, terminology, and progression
+  - 10: clearly advances the book's argument, workflow, chronology, or pedagogy
+
+- domain_fit_score (1-10): Does this fit the domain and avoid irrelevant assumptions?
+  - 1-3: wrong domain or code/technical rubric forced into non-technical material
+  - 4-6: partially generic
+  - 7-9: fits the domain, audience, and book type
+  - 10: exemplary domain-specific framing without overfitting to one topic
 
 === HARD CONSTRAINTS ===
 - do not add new facts
@@ -103,7 +121,9 @@ Do not wrap the response in markdown or code fences.
 
 def build_reviewer_prompt(section: ReviewerSectionInput) -> str:
     payload = {
-        "task": "Review one practical technical-book section using the provided notes and writer draft. Enforce content requirements and assign quality scores.",
+        "task": "Review one book section using the provided notes, writer draft, and Book Contract. Enforce adaptive content requirements and assign honest quality scores.",
+        "book_contract": section.book_contract,
+        "progression_strategy": section.progression_strategy,
         "important_behavior": [
             "Prefer APPROVED when only tiny edits are needed AND all quality scores >= 6.",
             "Use REVISED when prose was meaningfully improved.",
@@ -177,6 +197,9 @@ def build_reviewer_prompt(section: ReviewerSectionInput) -> str:
                 "code_coverage_score": "int 1-10",
                 "learning_depth_score": "int 1-10",
                 "visual_richness_score": "int 1-10",
+                "source_grounding_score": "int 1-10",
+                "continuity_score": "int 1-10",
+                "domain_fit_score": "int 1-10",
             },
         },
         "decision_checklist": {
@@ -186,7 +209,8 @@ def build_reviewer_prompt(section: ReviewerSectionInput) -> str:
                 "If must_include_code is true, does the section have code blocks?",
                 "If must_include_diagram is true, does the section have diagram hints?",
                 "Is this a PRACTICAL section, not just descriptive text?",
-                "For non-coding subjects, is code omitted unless genuinely needed?",
+                "For non-coding subjects, is code and code-validation language omitted unless genuinely needed?",
+                "Does the section fit the Book Contract domain, evidence standard, risk level, and progression strategy?",
                 "Are raw HTML tags and private file paths absent?",
                 "Are worked examples internally consistent, with no self-correction chatter?",
                 "Are all quality scores >= 6?",
@@ -219,6 +243,8 @@ def build_reviewer_prompt(section: ReviewerSectionInput) -> str:
             "writer_code_blocks_count": section.writer_code_blocks_count,
             "writer_diagram_hints_count": section.writer_diagram_hints_count,
             "writing_status": section.writing_status,
+            "book_contract": section.book_contract,
+            "progression_strategy": section.progression_strategy,
         },
     }
 

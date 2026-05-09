@@ -202,6 +202,14 @@ class SectionSynthesisInput(BaseModel):
         default=None,
         description="Chosen implementation/story strategy for the whole book.",
     )
+    progression_strategy: Optional[str] = Field(
+        default=None,
+        description="Domain-neutral continuity strategy: argument, chronology, project, workflow, or learning sequence.",
+    )
+    book_contract: dict = Field(
+        default_factory=dict,
+        description="Persistent Book Contract used to adapt research, writing, validation, and repair to this topic.",
+    )
 
     @field_validator("key_concepts", "evidence_items", "writing_guidance", "open_questions", "available_source_ids")
     @classmethod
@@ -381,6 +389,14 @@ class SectionNoteArtifact(BaseModel):
     implementation_strategy: Optional[str] = Field(
         default=None,
         description="Chosen implementation/story strategy for the full manuscript.",
+    )
+    progression_strategy: Optional[str] = Field(
+        default=None,
+        description="Domain-neutral continuity strategy for the full manuscript.",
+    )
+    book_contract: dict = Field(
+        default_factory=dict,
+        description="Persistent Book Contract used to adapt writing and validation.",
     )
 
     @field_validator(

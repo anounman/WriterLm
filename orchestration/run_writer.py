@@ -73,6 +73,8 @@ def build_tasks_from_notes_bundle(bundle: dict[str, Any]) -> List[WriterSectionT
                 continuity_rules=note.get("continuity_rules") or [],
                 chapter_dependencies=note.get("chapter_dependencies") or [],
                 implementation_strategy=note.get("implementation_strategy"),
+                progression_strategy=note.get("progression_strategy"),
+                book_contract=note.get("book_contract") or {},
             )
 
             task = WriterSectionTask(
