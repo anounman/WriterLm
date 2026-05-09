@@ -1,82 +1,66 @@
 # WriterLM
 
-WriterLM is an AI-driven, multi-agent pipeline designed to automate the process of researching, drafting, reviewing, and assembling long-form documents and books. It features a robust generation pipeline spanning from initial planning to LaTeX compilation, accompanied by a modern web studio for seamless workflow management.
+WriterLM is an advanced, AI-driven multi-agent system designed to automate the process of researching, drafting, reviewing, and assembling long-form documents and textbooks. The platform features a robust generation pipeline powered by LangGraph, seamlessly accompanied by a modern web studio for user and workflow management.
 
+![WriterLM Architecture](assets/architecture.png)
 
-![WriterLM Multi-Agent Pipeline](docs/images/pipeline.png)
+## Overview
 
-## Architecture
+At its core, WriterLM orchestrates a multi-stage workflow where highly specialized AI agents execute distinct phases of the writing process. By separating concerns, WriterLM ensures high-quality, deeply researched, and stylistically consistent output.
 
-WriterLM's architecture revolves around a robust, multi-stage LangGraph workflow. The system is designed to allow each specialized AI agent to perform its role efficiently while passing structured state data to the next stage.
+### The Agent Pipeline
 
-### Pipeline Flow
-
-```mermaid
-graph TD
-    A[Planner Agent] -->|Book Plan| B[Researcher Agent]
-    B -->|Web Data & PDFs| C[Notes Synthesizer]
-    C -->|Structured Notes| D[Writer Agent]
-    D -->|Section Drafts| E[Reviewer Agent]
-    E -->|Critique / Revisions| F{Approved?}
-    F -->|No| D
-    F -->|Yes| G[Assembler]
-    G -->|LaTeX Manuscript| H[LaTeX Compiler]
-    H -->|Final PDF| I((Finished Book))
-```
-
-The system is built as a multi-agent pipeline, where each agent specializes in a distinct phase of the writing process:
-
-1. **Planner Agent** (`planner_agent/`): Generates a comprehensive book outline, structuring chapters and sections based on the user's topic, target audience, tone, and goals.
-2. **Researcher** (`researcher/`): Gathers detailed information for each section. It supports **hybrid research**, dynamically pulling data from web searches (via Tavily/Firecrawl) and local, user-provided PDFs.
-3. **Notes Synthesizer** (`notes_synthesizer/`): Condenses raw, disparate research material into structured, coherent notes ready for drafting.
-4. **Writer** (`writer/`): Drafts the actual content section by section, utilizing the synthesized notes to ensure accuracy and depth.
-5. **Reviewer** (`reviewer/`): Critiques and revises the drafts to guarantee quality, stylistic consistency, and strict alignment with the book plan.
-6. **Assembler** (`assembler/`): Combines the approved drafts into a unified, properly formatted LaTeX manuscript and optionally compiles it into a final PDF.
-
-## Web Studio
-
-![WriterLM Studio Dashboard](docs/images/studio.png)
-
-WriterLM includes a full-stack web studio allowing users to interact with and manage the writing pipelines:
-- **Frontend** (`web/frontend/`): Built with Vite, providing an intuitive React-based user interface for managing book projects, tracking progress, and securely configuring provider API keys.
-- **Backend** (`web/backend/`): A FastAPI application serving as the robust API for the pipeline, featuring encrypted at-rest storage for user provider keys and secure authentication using Clerk.
+1. **Planner Agent** (`planner_agent/`): Initializes the book structure. Based on user inputs (topic, target audience, tone, and goals), the planner outlines chapters, sections, and the overarching instructional logic.
+2. **Researcher** (`researcher/`): Conducts thorough data gathering. It supports a **hybrid research mode**, dynamically crawling the web (via Tavily/Firecrawl) or extracting data from user-uploaded PDFs to build context for each section.
+3. **Notes Synthesizer** (`notes_synthesizer/`): Processes raw research packets, condensing them into structured, coherent notes formatted perfectly for drafting.
+4. **Writer** (`writer/`): Generates the actual content section-by-section, leveraging the synthesized notes to maintain factual accuracy and narrative flow.
+5. **Reviewer** (`reviewer/`): Analyzes the generated drafts, offering critiques and requesting revisions until the content aligns perfectly with the book plan and stylistic guidelines.
+6. **Assembler** (`assembler/`): Combines all approved section drafts into a cohesive LaTeX manuscript, compiling it into a polished, final PDF.
 
 ## Tech Stack
 
-- **Pipeline Core**: Python 3.11+, LangGraph, SQLAlchemy, PyMuPDF, Trafilatura
-- **LLMs**: Google Gemini, Groq, OpenAI (configurable per pipeline layer)
-- **Frontend**: Vite, React/Next.js, Clerk (Authentication)
-- **Infrastructure**: Docker, Docker Compose, PostgreSQL
+- **Core AI Pipeline**: Python 3.11+, LangGraph, PyMuPDF, Trafilatura
+- **Backend / Orchestration**: FastAPI, SQLAlchemy, PostgreSQL
+- **Frontend / Studio**: Vite, React, Clerk (Authentication)
+- **Infrastructure**: Docker, Docker Compose
+- **LLM Integrations**: Flexible provider support (Google Gemini, Groq, OpenAI) tailored per pipeline stage.
 
-## Getting Started
+---
+
+## Contributor Setup Guide
+
+Whether you're developing new pipeline features or expanding the Web Studio, here is how you can set up WriterLM for local development.
 
 ### Prerequisites
 
-- Docker and Docker Compose
-- Python 3.11+ (if running the pipeline locally without Docker)
-- **API Keys**: 
-  - Auth: Clerk Publishable and Secret Keys
-  - Database: PostgreSQL (e.g., Neon)
-  - *Note: LLM provider keys (Google, Groq) and Search API keys (Tavily, Firecrawl) can be managed by individual users directly within the web UI.*
+- **Docker & Docker Compose** (Recommended for full stack)
+- **Python 3.11+** (If running the Python pipeline locally without Docker)
+- **Node.js 20+** (If running the frontend locally)
+- A **Clerk Account** (for Auth) and a **PostgreSQL** database (e.g., Neon or local).
 
-### Setup
+### 1. Environment Configuration
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd writerLm
-   ```
+Clone the repository and set up your environment variables:
 
-2. **Environment Variables:**
-   Copy the example environment file and configure your keys:
-   ```bash
-   cp .env.example .env
-   ```
-   Update `.env` with your `CLERK_SECRET_KEY`, `VITE_CLERK_PUBLISHABLE_KEY`, `DATABASE_URL`, and generate an `APP_ENCRYPTION_KEY` (used to encrypt user API keys in the database).
+```bash
+git clone <repository-url>
+cd writerLm
+cp .env.example .env
+```
 
-### Running with Docker Compose
+Configure your `.env` file with your specific credentials:
+- `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`
+- `DATABASE_URL`
+- `APP_ENCRYPTION_KEY`: A Fernet key used to encrypt user API keys in the database. Generate one using: 
+  ```bash
+  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+  ```
 
-The easiest and recommended way to run the full WriterLM Studio (Frontend + Backend) is via Docker Compose:
+*(Note: API keys for LLMs like Google, Groq, and Search APIs like Tavily or Firecrawl can be configured securely by users through the Studio's UI.)*
+
+### 2. Running the Full Stack (Docker Compose)
+
+The easiest way to get the entire application running—frontend, backend, and the background workers—is via Docker.
 
 ```bash
 docker-compose up --build
@@ -85,27 +69,31 @@ docker-compose up --build
 - **Frontend Studio**: [http://localhost:8080](http://localhost:8080)
 - **Backend API**: [http://localhost:8000](http://localhost:8000)
 
-### Running the Pipeline Manually (CLI)
+### 3. Local Development (Without Docker)
 
-If you prefer to run the pipeline directly from the command line without the web studio:
+If you are iterating heavily on the AI pipeline or backend, you may want to run them natively.
 
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. (Optional) Place any PDFs for local context research in `inputs/pdfs/`.
-3. Set your required provider keys in your environment (e.g., `export TAVILY_API_KEY="..."`, `export GOOGLE_API_KEY="..."`).
-4. Run the full orchestration script:
-   ```bash
-   python orchestration/run_full_pipeline.py
-   ```
-   
-*Note: The `orchestration/` directory contains numerous scripts to run individual pipeline layers in isolation (e.g., `run_research_only.py`, `run_latex_compile.py`, `run_assembler_only.py`).*
+**Backend/Pipeline Setup:**
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
-## Environment Configuration
+To run the orchestration pipeline via CLI (bypassing the web backend):
+```bash
+# Ensure your API keys (GOOGLE_API_KEY, TAVILY_API_KEY) are in your shell
+python orchestration/run_full_pipeline.py
+```
+*(Drop PDFs into `inputs/pdfs/` to utilize the local document research features.)*
 
-Key environment variables in `.env` for the pipeline:
-- `LLM_PROVIDER`: Default LLM provider (e.g., `google`, `groq`).
-- `*_GOOGLE_MODEL` / `*_GROQ_MODEL`: Configure specific models for each pipeline stage (planner, researcher, notes, writer, reviewer).
-- `WRITERLM_COMPILE_LATEX`: Set to `1` to automatically compile the generated LaTeX manuscript to PDF.
-- `WRITERLM_FORCE_WEB_RESEARCH`: Set to `1` to force web research even if local PDFs are provided in the inputs directory.
+**Frontend Setup:**
+```bash
+cd web/frontend
+npm install
+npm run dev
+```
+
+## Contributing
+
+We welcome contributions! When adding new capabilities to an agent, please test your changes in isolation using the specific scripts in the `orchestration/` directory (e.g., `run_research_only.py`, `run_assembler_only.py`) before integrating them into the main pipeline. Ensure all new components respect the typed inputs and outputs defined by the LangGraph states.
