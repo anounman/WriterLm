@@ -15,7 +15,8 @@ At its core, WriterLM orchestrates a multi-stage workflow where highly specializ
 3. **Notes Synthesizer** (`notes_synthesizer/`): Processes raw research packets, condensing them into structured, coherent notes formatted perfectly for drafting.
 4. **Writer** (`writer/`): Generates the actual content section-by-section, leveraging the synthesized notes to maintain factual accuracy and narrative flow.
 5. **Reviewer** (`reviewer/`): Analyzes the generated drafts, offering critiques and requesting revisions until the content aligns perfectly with the book plan and stylistic guidelines.
-6. **Assembler** (`assembler/`): Combines all approved section drafts into a cohesive LaTeX manuscript, compiling it into a polished, final PDF.
+6. **Quality Checker** (`quality/`): Runs an automated Quality Assurance (QA) pass on the approved drafts. It derives a "book contract" from the initial constraints and executes a repair loop with targeted validators to ensure factual accuracy and structural adherence.
+7. **Assembler** (`assembler/`): Combines all approved and QA-verified section drafts into a cohesive LaTeX manuscript, compiling it into a polished, final PDF.
 
 ## Tech Stack
 
