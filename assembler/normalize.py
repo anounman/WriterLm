@@ -98,15 +98,20 @@ def normalize_review_bundle(
     for result in review_bundle.sections:
         section_input = result.section_input
         section_output = result.section_output
-        section_title = _clean_text(section_output.section_title)
+        reviewer_title = _clean_text(section_output.section_title)
         raw_section_id = _clean_text(section_output.section_id)
 
-        # Attempt to resolve the canonical planner section ID.
-        resolved_id = _resolve_section_id(
+        # Attempt to resolve the canonical planner section ID *and* title.
+        # When the LLM drifts the section title, both the ID and the title must
+        # be snapped to the planner's ground-truth values so that the downstream
+        # title-mismatch validator passes.
+        resolved_id, canonical_title = _resolve_section_id(
             raw_section_id=raw_section_id,
-            reviewer_title=section_title,
+            reviewer_title=reviewer_title,
             planner_sections_by_chapter=planner_sections_by_chapter,
         )
+        # Prefer the planner's canonical title; fall back to the reviewer's.
+        section_title = canonical_title if canonical_title is not None else reviewer_title
 
         normalized_sections.append(
             AssemblerReviewedSection(
@@ -139,17 +144,24 @@ def _resolve_section_id(
     raw_section_id: str,
     reviewer_title: str,
     planner_sections_by_chapter: dict[int, list[AssemblerPlannerSection]],
-) -> str:
-    """Return the canonical planner section_id that best matches the reviewer output.
+) -> tuple[str, str | None]:
+    """Return (canonical_section_id, canonical_title | None) for the reviewer section.
+
+    When a planner section is matched via fuzzy title overlap the planner's
+    canonical section_id *and* section_title are both returned so that the
+    caller can adopt the ground-truth title and avoid title-mismatch errors.
+    When no planner match is found, canonical_title is None and the caller
+    should keep the reviewer's original title.
 
     Strategy:
     1. Extract the chapter number from the reviewer's raw section_id.
     2. Among planner sections for that chapter, find the one whose title has the
-       highest token-overlap with the reviewer's (potentially drifted) title.
-    3. If the best match exceeds the minimum overlap threshold, return the
-       planner's canonical section_id (preserving the ground-truth ID).
-    4. Otherwise fall back to rebuilding from the reviewer's own title so that
-       the validator can report a clean mismatch rather than a silent wrong match.
+       highest Jaccard token-overlap with the reviewer's (potentially drifted)
+       title.
+    3. If the best match exceeds the minimum overlap threshold, return
+       (planner.section_id, planner.section_title).
+    4. Otherwise rebuild the ID from the reviewer's own title and return
+       (rebuilt_id, None) so the validator can report a clean mismatch.
     """
     chapter_match = re.search(r"\bchapter-(\d+)\b", raw_section_id)
     if chapter_match and reviewer_title:
@@ -158,13 +170,14 @@ def _resolve_section_id(
         if planner_sections:
             best_section = _best_title_match(reviewer_title, planner_sections)
             if best_section is not None:
-                return best_section.section_id
+                # Return both the canonical ID *and* the canonical title.
+                return best_section.section_id, best_section.section_title
         # No planner context or no good match – rebuild from reviewer title.
         return build_section_id(
             chapter_number=chapter_number,
             section_title=reviewer_title,
-        )
-    return _normalize_section_id_text(raw_section_id)
+        ), None
+    return _normalize_section_id_text(raw_section_id), None
 
 
 def _best_title_match(
