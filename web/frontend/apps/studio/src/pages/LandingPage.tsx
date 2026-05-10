@@ -1,4 +1,5 @@
-import React from "react";
+import { SignInButton, SignUpButton } from "@clerk/react";
+import { Button, ThemeToggle } from "@writerlm/ui";
 import {
   BookOpen,
   Brain,
@@ -15,8 +16,6 @@ import {
   Sparkles,
   TerminalSquare,
 } from "lucide-react";
-import { ThemeToggle, Button } from "@writerlm/ui";
-import { SignInButton, SignUpButton } from "@clerk/react";
 import { motion, Variants } from "motion/react";
 
 interface LandingPageProps {
@@ -165,7 +164,7 @@ export function LandingPage({ theme, onTheme }: LandingPageProps) {
               {[
                 ["Any", "book category"],
                 ["PDF", "final export"],
-                ["5", "LLM stages"],
+                ["11", "LLM stages"],
                 ["Local", "Docker stack"],
               ].map(([value, label]) => (
                 <div key={label} className="rounded-lg border border-border bg-background/75 px-4 py-3">
