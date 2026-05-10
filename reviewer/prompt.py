@@ -104,10 +104,28 @@ You MUST assign quality_scores for every section:
 - reviewed_content must not contain unresolved correction chatter; fix the example or flag the section
 - if correction chatter remains, add warning "unresolved_self_correction" and FLAG the section
 
+=== GENERATION CONTRACT ENFORCEMENT ===
+The Book Contract may include enriched generation contract fields. You MUST enforce them:
+
+CODE ARTIFACT POLICY (book_contract.code_artifact_policy):
+- "no_code": If code blocks, terminal commands, or programming filler appear → add warning "code_policy_violation" and FLAG the section.
+- "file_labeled_code_required": If code blocks exist but lack file path labels (e.g. File: path/to/file.py, Shell command, Dockerfile, Test file) → add warning "unlabeled_code_blocks" and FLAG the section.
+- "pseudocode_only": If runnable language-specific code appears → add warning "code_policy_violation".
+
+REQUIRED STACK (book_contract.required_stack):
+- If code uses technologies not in the required_stack without explicitly discussing alternatives → add warning "stack_drift".
+
+FORBIDDEN CONTENT (book_contract.domain_constraints / book_contract.must_not_do):
+- If the draft contains content matching forbidden items → add warning "forbidden_content_violation" and FLAG the section.
+
+SHOWCASE / HIGH QUALITY (book_contract.showcase_candidate or target_quality_score >= 80):
+- If the section contains generic filler, template phrases, or shallow padding → add warning "generic_filler_detected".
+- If diagrams are placeholder or visually uninformative → add warning "weak_diagram".
+
 Status rules:
 - approved: Writer draft is strong, only tiny cleanup needed. Quality scores are all >= 6.
 - revised: Section is grounded and usable but needed prose refinement. Quality scores vary.
-- flagged: Section is unsupported, off-topic, pure-text when code was required, or quality scores include any dimension <= 3.
+- flagged: Section is unsupported, off-topic, pure-text when code was required, has contract violations, or quality scores include any dimension <= 3.
 
 Rules for PARTIAL sections:
 - if synthesis_status is partial, preserve uncertainty explicitly

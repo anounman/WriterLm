@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
-import { FileText, X, ArrowRight, RefreshCw, Upload, Play, Plus, Globe, Check } from "lucide-react";
+import { FileText, X, ArrowRight, RefreshCw, Upload, Play, Plus, Globe, Check, ChevronDown } from "lucide-react";
 import { Button, Card, Input } from "@writerlm/ui";
-import { ApiClient, BookRequest, CodeDensity, Job, friendlyApiErrorMessage } from "../api";
+import { ApiClient, BookRequest, CodeDensity, Job, friendlyApiErrorMessage, GenerationContract, DepthLevel, ImplementationStyle, SectionStyle, CodeArtifactPolicy } from "../api";
 
 interface CreatePageProps {
   api: ApiClient;
@@ -37,6 +37,7 @@ export function CreatePage({ api, onCreated, onNotice }: CreatePageProps) {
   const [pdfFiles, setPdfFiles] = useState<File[]>([]);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [qualityEstimate, setQualityEstimate] = useState<any>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const promptFileRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -393,6 +394,112 @@ export function CreatePage({ api, onCreated, onNotice }: CreatePageProps) {
                   <Input type="number" min={100} max={3000} step={100} value={request.max_section_words ?? ""} onChange={e => setRequest(r => ({ ...r, max_section_words: parseInt(e.target.value) || 900 }))} className="text-xs" />
                 </div>
               </div>
+            </div>
+          </Card>
+
+          {/* Advanced Generation Settings — collapsed by default */}
+          <Card>
+            <div className="p-5">
+              <button
+                type="button"
+                className="flex items-center justify-between w-full text-left"
+                onClick={() => setAdvancedOpen(o => !o)}
+              >
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Advanced Generation</h3>
+                <ChevronDown size={14} className={`text-muted-foreground transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {advancedOpen && (
+                <div className="space-y-4 mt-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1.5">Depth level</label>
+                    <select
+                      className="w-full h-8 bg-input border border-input text-foreground rounded-md px-3 text-xs focus:ring-1 focus:ring-ring outline-none"
+                      value={request.generation_contract?.depth_level ?? ""}
+                      onChange={e => setRequest(r => ({ ...r, generation_contract: { ...r.generation_contract, depth_level: (e.target.value || null) as DepthLevel | null } }))}
+                    >
+                      <option value="">Auto (inferred)</option>
+                      <option value="surface">Surface — overview</option>
+                      <option value="intermediate">Intermediate — working knowledge</option>
+                      <option value="deep">Deep — expert level</option>
+                      <option value="exhaustive">Exhaustive — reference grade</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1.5">Implementation style</label>
+                    <select
+                      className="w-full h-8 bg-input border border-input text-foreground rounded-md px-3 text-xs focus:ring-1 focus:ring-ring outline-none"
+                      value={request.generation_contract?.implementation_style ?? ""}
+                      onChange={e => setRequest(r => ({ ...r, generation_contract: { ...r.generation_contract, implementation_style: (e.target.value || null) as ImplementationStyle | null } }))}
+                    >
+                      <option value="">Auto (inferred)</option>
+                      <option value="conceptual_only">Conceptual only</option>
+                      <option value="pseudocode">Pseudocode</option>
+                      <option value="recipe_steps">Recipe steps</option>
+                      <option value="file_by_file">File-by-file implementation</option>
+                      <option value="project_progressive">Progressive project</option>
+                      <option value="argument_driven">Argument driven</option>
+                      <option value="case_study_playbook">Case study playbook</option>
+                      <option value="workbook">Workbook</option>
+                      <option value="visual_textbook">Visual textbook</option>
+                      <option value="reference">Reference</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1.5">Section style</label>
+                    <select
+                      className="w-full h-8 bg-input border border-input text-foreground rounded-md px-3 text-xs focus:ring-1 focus:ring-ring outline-none"
+                      value={request.generation_contract?.section_style ?? ""}
+                      onChange={e => setRequest(r => ({ ...r, generation_contract: { ...r.generation_contract, section_style: (e.target.value || null) as SectionStyle | null } }))}
+                    >
+                      <option value="">Auto (inferred)</option>
+                      <option value="academic">Academic</option>
+                      <option value="conversational">Conversational</option>
+                      <option value="handbook">Handbook</option>
+                      <option value="tutorial">Tutorial</option>
+                      <option value="reference">Reference</option>
+                      <option value="file_by_file_implementation">File-by-file implementation</option>
+                      <option value="academic_argument">Academic argument</option>
+                      <option value="case_study_playbook">Case study playbook</option>
+                      <option value="visual_textbook">Visual textbook</option>
+                      <option value="workbook">Workbook</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1.5">Code artifact policy</label>
+                    <select
+                      className="w-full h-8 bg-input border border-input text-foreground rounded-md px-3 text-xs focus:ring-1 focus:ring-ring outline-none"
+                      value={request.generation_contract?.code_artifact_policy ?? ""}
+                      onChange={e => setRequest(r => ({ ...r, generation_contract: { ...r.generation_contract, code_artifact_policy: (e.target.value || null) as CodeArtifactPolicy | null } }))}
+                    >
+                      <option value="">Auto (inferred)</option>
+                      <option value="no_code">No code</option>
+                      <option value="pseudocode_only">Pseudocode only</option>
+                      <option value="minimal_runnable">Minimal runnable</option>
+                      <option value="file_labeled_code_required">File-labeled code required</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1.5">Target reader outcome</label>
+                    <Input
+                      type="text"
+                      value={request.generation_contract?.target_reader_outcome ?? ""}
+                      onChange={e => setRequest(r => ({ ...r, generation_contract: { ...r.generation_contract, target_reader_outcome: e.target.value || null } }))}
+                      placeholder="What should the reader achieve?"
+                      className="text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1.5">Forbidden content</label>
+                    <textarea
+                      className="w-full bg-input border border-input rounded-md p-3 text-sm text-foreground focus:ring-1 focus:ring-ring outline-none min-h-[60px] resize-none"
+                      value={(request.generation_contract?.forbidden_content ?? []).join("\n")}
+                      onChange={e => setRequest(r => ({ ...r, generation_contract: { ...r.generation_contract, forbidden_content: e.target.value.split("\n").map(s => s.trim()).filter(Boolean) } }))}
+                      placeholder={"fake quotes\nclinical diagnosis\nplaceholder code"}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">One item per line. These will be enforced during generation.</p>
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
 

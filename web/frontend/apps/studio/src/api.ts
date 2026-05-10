@@ -77,6 +77,43 @@ export type ExerciseStrategy = "auto" | "none" | "extract_patterns" | "worked_ex
 export type CodeDensity = "none" | "low" | "medium" | "high";
 export type ContentDensity = "low" | "medium" | "high";
 
+export type DepthLevel = "surface" | "intermediate" | "deep" | "exhaustive";
+export type ImplementationStyle =
+  | "conceptual_only" | "pseudocode" | "recipe_steps" | "file_by_file" | "project_progressive"
+  | "argument_driven" | "case_study_playbook" | "workbook" | "visual_textbook" | "reference";
+export type SectionStyle =
+  | "academic" | "conversational" | "handbook" | "tutorial" | "reference"
+  | "file_by_file_implementation" | "academic_argument" | "case_study_playbook" | "visual_textbook" | "workbook";
+export type CodeArtifactPolicy = "no_code" | "pseudocode_only" | "minimal_runnable" | "file_labeled_code_required";
+export type DiagramStyle =
+  | "none" | "conceptual" | "architecture" | "data_flow" | "comparison_matrix"
+  | "architecture_sequence_schema_deployment" | "concept_maps_decision_trees_checklists"
+  | "argument_maps_comparison_matrices" | "timelines_cause_effect_maps" | "frameworks_matrices_funnels";
+export type SourceStrictness = "low" | "medium" | "high" | "primary_sources_required";
+export type EvidenceStandard = "anecdotal" | "curated" | "primary_source" | "peer_reviewed";
+
+export interface GenerationContract {
+  depth_level?: DepthLevel | null;
+  implementation_style?: ImplementationStyle | null;
+  section_style?: SectionStyle | null;
+  code_artifact_policy?: CodeArtifactPolicy | null;
+  diagram_style?: DiagramStyle | null;
+  source_strictness?: SourceStrictness | null;
+  evidence_standard?: EvidenceStandard | null;
+  showcase_candidate?: boolean;
+  required_stack?: string[];
+  forbidden_content?: string[];
+  project_artifacts?: string[];
+  required_outputs?: string[];
+  success_criteria?: string[];
+  running_examples?: string[];
+  style_references?: string[];
+  target_reader_outcome?: string | null;
+  citation_policy?: string | null;
+  visual_policy?: string | null;
+  notation_system?: string | null;
+}
+
 export interface BookRequest {
   topic: string;
   audience: string;
@@ -92,6 +129,7 @@ export interface BookRequest {
   code_density: CodeDensity;
   example_density: ContentDensity;
   diagram_density: ContentDensity;
+  generation_contract?: GenerationContract | null;
   max_section_words: number | null;
   force_web_research: boolean;
   urls: string[];

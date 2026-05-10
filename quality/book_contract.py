@@ -125,6 +125,18 @@ class BookContract(BaseModel):
     must_not_do: list[str] = Field(default_factory=list)
     activated_validator_hints: list[str] = Field(default_factory=list)
 
+    # ── GenerationContract-sourced fields ─────────────────────────────────
+    implementation_style: Optional[str] = None
+    required_stack: list[str] = Field(default_factory=list)
+    code_artifact_policy: Optional[str] = None
+    diagram_style: Optional[str] = None
+    source_strictness: Optional[str] = None
+    project_artifacts: list[str] = Field(default_factory=list)
+    required_outputs: list[str] = Field(default_factory=list)
+    success_criteria: list[str] = Field(default_factory=list)
+    target_reader_outcome: Optional[str] = None
+    showcase_candidate: bool = False
+
     # Useful continuity fields retained for existing prompts/state.
     user_goal: str = ""
     thesis: str = ""
@@ -167,8 +179,18 @@ class BookContract(BaseModel):
             f"Source policy: {self.source_policy}",
             f"Visual policy: {self.visual_policy}",
         ]
+        if self.code_artifact_policy:
+            parts.append(f"Code artifact policy: {self.code_artifact_policy}")
+        if self.implementation_style:
+            parts.append(f"Implementation style: {self.implementation_style}")
+        if self.required_stack:
+            parts.append(f"Required stack: {', '.join(self.required_stack)}")
         if self.central_promise or self.thesis:
             parts.append(f"Central promise: {self.central_promise or self.thesis}")
+        if self.target_reader_outcome:
+            parts.append(f"Target reader outcome: {self.target_reader_outcome}")
+        if self.showcase_candidate:
+            parts.append("Showcase candidate: yes")
         if self.must_not_do:
             parts.append("Must not do: " + "; ".join(self.must_not_do[:12]))
         if self.activated_validator_hints:
@@ -260,6 +282,39 @@ def classify_book_contract(
     goal = _goal_text(user_input)
     topic = str(user_input.get("topic") or user_input.get("title") or "the requested book").strip()
 
+    # ── Merge generation_contract if present ───────────────────────────
+    gc = dict(user_input.get("generation_contract") or {})
+
+    # code_artifact_policy overrides
+    gc_code_policy = gc.get("code_artifact_policy")
+    if gc_code_policy == "no_code":
+        code_expected = False
+        code_density = "none"
+    elif gc_code_policy == "file_labeled_code_required" and code_density == "none":
+        code_density = "medium"
+        code_expected = True
+
+    # depth_level overrides audience_level
+    gc_depth = gc.get("depth_level")
+    if gc_depth == "deep" or gc_depth == "exhaustive":
+        audience_level = "advanced"
+    elif gc_depth == "surface":
+        audience_level = "beginner"
+
+    # Merge forbidden_content into domain_constraints / must_not_do
+    gc_forbidden = gc.get("forbidden_content") or []
+    combined_constraints = list(must_not_do)
+    existing_lower = {item.lower() for item in combined_constraints}
+    for item in gc_forbidden:
+        if item.lower() not in existing_lower:
+            combined_constraints.append(f"Do not include {item}.")
+            existing_lower.add(item.lower())
+
+    # Visual policy override from contract
+    final_visual_policy = gc.get("visual_policy") or _visual_policy(domain, book_type)
+    # Citation policy override from contract
+    final_citation_policy = gc.get("citation_policy") or "Use citations only where they support the claim being made."
+
     return BookContract(
         domain=domain,  # type: ignore[arg-type]
         subdomain=subdomain,
@@ -269,7 +324,7 @@ def classify_book_contract(
         pedagogy_style=pedagogy_style,
         evidence_standard=evidence_standard,  # type: ignore[arg-type]
         source_policy=_source_policy(evidence_standard, domain),
-        visual_policy=_visual_policy(domain, book_type),
+        visual_policy=final_visual_policy,
         risk_level=risk_level,  # type: ignore[arg-type]
         freshness_requirement=freshness_requirement,  # type: ignore[arg-type]
         implementation_heavy=implementation_heavy,
@@ -279,15 +334,28 @@ def classify_book_contract(
         project_based=project_based,
         research_heavy=research_heavy,
         sensitive_domain=sensitive_domain,
-        must_not_do=must_not_do,
+        must_not_do=combined_constraints,
         activated_validator_hints=activated_validator_hints,
+        # GenerationContract-sourced fields
+        implementation_style=gc.get("implementation_style"),
+        required_stack=gc.get("required_stack") or [],
+        code_artifact_policy=gc_code_policy,
+        diagram_style=gc.get("diagram_style"),
+        source_strictness=gc.get("source_strictness"),
+        project_artifacts=gc.get("project_artifacts") or [],
+        required_outputs=gc.get("required_outputs") or [],
+        success_criteria=gc.get("success_criteria") or [],
+        target_reader_outcome=gc.get("target_reader_outcome"),
+        showcase_candidate=bool(gc.get("showcase_candidate")),
+        # Continuity fields
         user_goal=goal,
         thesis=f"{topic} for {user_input.get('audience') or 'the intended reader'}",
         central_promise=goal or f"Help the reader understand and apply {topic} at the requested depth.",
         expected_depth=str(user_input.get("depth") or audience_level),
         structure_pattern=_structure_pattern(domain, book_type),
         examples_strategy=_examples_strategy(domain, book_type),
-        domain_constraints=must_not_do,
+        domain_constraints=combined_constraints,
+        citation_policy=final_citation_policy,
     )
 
 

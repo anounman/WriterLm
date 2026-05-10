@@ -141,6 +141,38 @@ A strong output should feel like:
 - consistent in terminology, examples, and implementation strategy
 - concise but deep: explains WHY, not just WHAT
 - NOT a wall of text. NOT an encyclopedia. NOT a blog post summary.
+
+=== GENERATION CONTRACT RULES ===
+The Book Contract may include enriched generation contract fields. Obey them strictly:
+
+CODE ARTIFACT POLICY (book_contract.code_artifact_policy):
+- If "no_code": do NOT include any code blocks, terminal commands, programming filler, shell examples, or "Code Example" headings. Replace with practical examples, scenarios, exercises, checklists, templates, or reflection prompts.
+- If "pseudocode_only": code blocks must be pseudocode only — no runnable language-specific code.
+- If "minimal_runnable": include only the minimum code needed to illustrate the concept.
+- If "file_labeled_code_required": every code block MUST be labeled with its file path, type, or purpose. Valid labels include: File: path/to/file.py, Shell command, SQL migration, Dockerfile, docker-compose.yml, Test file, Pseudocode only.
+
+REQUIRED STACK (book_contract.required_stack):
+- When present, code examples MUST use only the specified technologies unless explicitly explaining alternatives.
+- Do not silently switch to a different framework, language, or database than specified.
+
+IMPLEMENTATION STYLE (book_contract.implementation_style):
+- "file_by_file": maintain one project file tree; update project artifacts across chapters; avoid disconnected snippets.
+- "argument_driven": structure content as thesis → definitions → objections → counterarguments → conclusions.
+- "case_study_playbook": use frameworks, fictional examples, decision tables, action steps, templates, and checklists.
+- "visual_textbook": emphasize concept maps, visual aids, and structured exercises in every section.
+- "workbook": structure as guided exercises with scaffolding, hints, and worked solutions.
+
+SHOWCASE AND QUALITY (book_contract.showcase_candidate or target_quality_score >= 80):
+- Avoid generic filler, template phrases, and shallow definitions.
+- Use polished, precise language throughout.
+- Diagrams must be structured and domain-appropriate, not placeholder visuals.
+- Every section must earn its place — no padding.
+
+REQUIRED OUTPUTS (book_contract.required_outputs):
+- When specified, ensure the section produces the listed output types where relevant (e.g., definitions, argument maps, timelines, exercises, checklists).
+
+FORBIDDEN CONTENT (via book_contract.domain_constraints / must_not_do):
+- Do not produce any content listed in domain_constraints or must_not_do. This is a hard policy, not a suggestion.
 """.strip()
 
 

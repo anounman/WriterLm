@@ -99,6 +99,24 @@ def build_repair_plan(section_text: str, validation_reports: list[Any], contract
             repair_options = getattr(issue, "repair_options", None) or (issue.get("repair_options", []) if isinstance(issue, dict) else [])
             actions.extend(str(option) for option in repair_options)
 
+    # ── Generation-contract-aware repair actions ─────────────────────────
+    if contract.code_artifact_policy == "no_code" and _contains_code_artifact(section_text):
+        if "remove_disallowed_code" not in actions:
+            actions.append("remove_disallowed_code")
+            reasons.append("Code artifact policy is 'no_code' but section contains code.")
+    if contract.code_artifact_policy == "file_labeled_code_required" and "```" in section_text:
+        if "label_code_blocks" not in actions:
+            actions.append("label_code_blocks")
+            reasons.append("Code blocks must be labeled with file paths when code_artifact_policy is 'file_labeled_code_required'.")
+    if contract.required_stack and contract.code_expected and "```" in section_text:
+        if "fix_stack_drift" not in actions:
+            actions.append("fix_stack_drift")
+            reasons.append("Code may use technologies outside the required stack — flag for rewrite.")
+    if contract.domain_constraints and len(contract.domain_constraints) > 3:
+        if "review_forbidden_content" not in actions:
+            actions.append("review_forbidden_content")
+            reasons.append("Forbidden content policies are defined — flag violations for rewrite.")
+
     ordered_actions = _dedupe(actions)
     return RepairPlan(actions=ordered_actions, unsupported_claims=_dedupe(unsupported_claims), reasons=_dedupe(reasons))
 

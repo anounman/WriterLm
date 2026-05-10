@@ -79,6 +79,21 @@ OPTIONAL_VALIDATORS: tuple[ValidatorSpec, ...] = (
     ValidatorSpec("exercise_validator", "Activated for textbooks and exam-prep books.", lambda c: c.book_type in {"textbook", "exam_prep"}),
     ValidatorSpec("project_continuity_validator", "Activated for project-based books.", lambda c: c.project_based or c.book_type in {"project_based", "project_based_book"}),
     ValidatorSpec("case_study_validator", "Activated for business, management, and marketing books.", lambda c: c.domain in {"business", "management", "marketing"}),
+    ValidatorSpec(
+        "forbidden_content_validator",
+        "Activated when domain_constraints or forbidden content policies are defined.",
+        lambda c: bool(c.domain_constraints) and len(c.domain_constraints) > 3,  # only activate when there are user-specific constraints beyond the defaults
+    ),
+    ValidatorSpec(
+        "stack_consistency_validator",
+        "Activated when the contract requires specific technologies.",
+        lambda c: bool(c.required_stack) and c.code_expected,
+    ),
+    ValidatorSpec(
+        "code_artifact_policy_validator",
+        "Activated when a specific code artifact policy is set.",
+        lambda c: c.code_artifact_policy in {"no_code", "file_labeled_code_required", "pseudocode_only"},
+    ),
 )
 
 
@@ -245,6 +260,40 @@ def _detect_issues(text: str, contract: BookContract, claim_report: ClaimValidat
             message="Case/example may be fictional but is not clearly marked.",
             repair_options=["mark_example_as_fictional"],
         ))
+    # ── Generation-contract-aware validators ──────────────────────────────
+    if contract.code_artifact_policy == "no_code" and _contains_code_artifact(text):
+        issues.append(ValidatorIssue(
+            validator="code_artifact_policy_validator",
+            severity="error",
+            message="Section contains code artifacts but code_artifact_policy is 'no_code'.",
+            repair_options=["remove_disallowed_code"],
+        ))
+    if contract.code_artifact_policy == "file_labeled_code_required" and "```" in text:
+        if not _all_code_blocks_labeled(text):
+            issues.append(ValidatorIssue(
+                validator="code_artifact_policy_validator",
+                severity="error",
+                message="Code blocks must be labeled with file paths, shell commands, or types when code_artifact_policy is 'file_labeled_code_required'.",
+                repair_options=["label_code_blocks"],
+            ))
+    if contract.required_stack and contract.code_expected and "```" in text:
+        drift = _detect_stack_drift(text, contract.required_stack)
+        if drift:
+            issues.append(ValidatorIssue(
+                validator="stack_consistency_validator",
+                severity="warning",
+                message=f"Code may use technologies outside required_stack. Detected: {', '.join(drift)}.",
+                repair_options=["fix_stack_drift"],
+            ))
+    if contract.domain_constraints and len(contract.domain_constraints) > 3:
+        violations = _detect_forbidden_content(text, contract.domain_constraints)
+        if violations:
+            issues.append(ValidatorIssue(
+                validator="forbidden_content_validator",
+                severity="warning",
+                message=f"Possible forbidden content policy violations: {'; '.join(violations[:3])}.",
+                repair_options=["review_forbidden_content"],
+            ))
     return issues
 
 
@@ -315,3 +364,63 @@ def _fictional_case_unmarked(text: str, contract: BookContract) -> bool:
     has_case = bool(re.search(r"\b(?:case study|company|startup|customer|firm)\b", text, re.I))
     marked = bool(re.search(r"\b(?:fictional|composite|hypothetical|illustrative)\b", text, re.I))
     return has_case and not marked
+
+
+def _all_code_blocks_labeled(text: str) -> bool:
+    """Check if every fenced code block has a file/command label preceding it."""
+    code_block_pattern = re.compile(r"```\w+")
+    label_pattern = re.compile(
+        r"(?:File:\s*.+|Shell\s+command|SQL\s+migration|Dockerfile|docker-compose\.yml|Test\s+file|Pseudocode\s+only)",
+        re.I,
+    )
+    blocks = list(code_block_pattern.finditer(text))
+    if not blocks:
+        return True
+    for match in blocks:
+        # Check the 200 characters before the code block for a label
+        prefix = text[max(0, match.start() - 200):match.start()]
+        if not label_pattern.search(prefix):
+            return False
+    return True
+
+
+def _detect_stack_drift(text: str, required_stack: list[str]) -> list[str]:
+    """Detect obvious technology mentions outside the required stack."""
+    all_known = [
+        "FastAPI", "Django", "Flask", "Express", "Spring", "Rails",
+        "React", "Vue", "Angular", "Svelte", "Next.js", "Nuxt",
+        "PostgreSQL", "MySQL", "SQLite", "MongoDB", "Redis", "Cassandra",
+        "Docker", "Kubernetes", "Terraform", "Ansible",
+        "AWS", "Azure", "GCP", "Heroku", "Vercel",
+        "Python", "JavaScript", "TypeScript", "Java", "Go", "Rust", "Ruby", "C#",
+    ]
+    required_lower = {s.lower() for s in required_stack}
+    drifted: list[str] = []
+    for tech in all_known:
+        if tech.lower() not in required_lower:
+            if re.search(r"\b" + re.escape(tech) + r"\b", text, re.I):
+                drifted.append(tech)
+    return drifted
+
+
+def _detect_forbidden_content(text: str, constraints: list[str]) -> list[str]:
+    """Check for forbidden content policy violations.
+
+    This is NOT a naive keyword match. Constraints may be policies like
+    "Do not provide diagnosis" rather than literal banned words. We check
+    only for clear, actionable violations.
+    """
+    violations: list[str] = []
+    text_lower = text.lower()
+    # Only check user-specified constraints (skip the first 3 generic ones)
+    for constraint in constraints[3:]:
+        # Extract the core forbidden item from "Do not include X." patterns
+        cleaned = constraint.lower().strip()
+        for prefix in ("do not include ", "do not ", "avoid ", "never "):
+            if cleaned.startswith(prefix):
+                cleaned = cleaned[len(prefix):]
+                break
+        cleaned = cleaned.rstrip(".")
+        if len(cleaned) > 5 and cleaned in text_lower:
+            violations.append(constraint)
+    return violations

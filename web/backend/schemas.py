@@ -103,6 +103,139 @@ class PipelineConfig(BaseModel):
     max_image_assets: int = Field(default=4, ge=0, le=24)
 
 
+DepthLevel = Literal["surface", "intermediate", "deep", "exhaustive"]
+ImplementationStyle = Literal[
+    "conceptual_only",
+    "pseudocode",
+    "recipe_steps",
+    "file_by_file",
+    "project_progressive",
+    "argument_driven",
+    "case_study_playbook",
+    "workbook",
+    "visual_textbook",
+    "reference",
+]
+SectionStyle = Literal[
+    "academic",
+    "conversational",
+    "handbook",
+    "tutorial",
+    "reference",
+    "file_by_file_implementation",
+    "academic_argument",
+    "case_study_playbook",
+    "visual_textbook",
+    "workbook",
+]
+CodeArtifactPolicy = Literal[
+    "no_code",
+    "pseudocode_only",
+    "minimal_runnable",
+    "file_labeled_code_required",
+]
+DiagramStyle = Literal[
+    "none",
+    "conceptual",
+    "architecture",
+    "data_flow",
+    "comparison_matrix",
+    "architecture_sequence_schema_deployment",
+    "concept_maps_decision_trees_checklists",
+    "argument_maps_comparison_matrices",
+    "timelines_cause_effect_maps",
+    "frameworks_matrices_funnels",
+]
+SourceStrictness = Literal["low", "medium", "high", "primary_sources_required"]
+EvidenceStandard = Literal["anecdotal", "curated", "primary_source", "peer_reviewed"]
+
+
+class GenerationContract(BaseModel):
+    """Rich generation directives that travel with the request through the entire pipeline.
+
+    All fields are optional — the deterministic normalization layer fills defaults
+    based on the topic, audience, and book-type when the LLM parser or the user
+    does not supply them.
+    """
+
+    depth_level: DepthLevel | None = Field(
+        default=None,
+        description="How deep the content should go: surface (overview), intermediate (working knowledge), deep (expert), exhaustive (reference-grade).",
+    )
+    implementation_style: ImplementationStyle | None = Field(
+        default=None,
+        description="Controls how practical/implementation content is structured.",
+    )
+    section_style: SectionStyle | None = Field(
+        default=None,
+        description="The prose style for each section.",
+    )
+    code_artifact_policy: CodeArtifactPolicy | None = Field(
+        default=None,
+        description="Explicit policy for code in the book. Overrides code_density when set.",
+    )
+    diagram_style: DiagramStyle | None = Field(
+        default=None,
+        description="Preferred diagram type when diagrams are included.",
+    )
+    source_strictness: SourceStrictness | None = Field(
+        default=None,
+        description="How strictly sources must be validated and attributed.",
+    )
+    evidence_standard: EvidenceStandard | None = Field(
+        default=None,
+        description="Minimum evidence standard for claims in the book.",
+    )
+    showcase_candidate: bool = Field(
+        default=False,
+        description="When True, the book is intended as a polished showcase piece with higher quality thresholds.",
+    )
+    required_stack: list[str] = Field(
+        default_factory=list,
+        description="Technologies that code examples MUST use (e.g. ['Python', 'FastAPI', 'PostgreSQL']).",
+    )
+    forbidden_content: list[str] = Field(
+        default_factory=list,
+        description="Topics or content types that MUST NOT appear (e.g. ['clinical diagnosis', 'fake quotes']).",
+    )
+    project_artifacts: list[str] = Field(
+        default_factory=list,
+        description="Expected project deliverables (e.g. ['folder tree', 'source files', 'tests', 'Dockerfile']).",
+    )
+    required_outputs: list[str] = Field(
+        default_factory=list,
+        description="Output types every section should produce when applicable (e.g. ['definitions', 'exercises']).",
+    )
+    success_criteria: list[str] = Field(
+        default_factory=list,
+        description="Criteria the final book must meet (e.g. ['homepage showcase-ready', 'no generic filler']).",
+    )
+    running_examples: list[str] = Field(
+        default_factory=list,
+        description="Running examples or case studies that persist across chapters.",
+    )
+    style_references: list[str] = Field(
+        default_factory=list,
+        description="Books or resources whose style the user wants to emulate.",
+    )
+    target_reader_outcome: str | None = Field(
+        default=None,
+        description="What the reader should be able to do after finishing the book.",
+    )
+    citation_policy: str | None = Field(
+        default=None,
+        description="How citations and attributions should be handled.",
+    )
+    visual_policy: str | None = Field(
+        default=None,
+        description="Policy for diagrams, charts, and visual elements.",
+    )
+    notation_system: str | None = Field(
+        default=None,
+        description="Preferred notation system (e.g. 'LaTeX', 'standard mathematical', 'UML').",
+    )
+
+
 class BookRequest(BaseModel):
     topic: str = Field(..., min_length=3)
     audience: str = Field(..., min_length=3)
@@ -118,6 +251,10 @@ class BookRequest(BaseModel):
     code_density: CodeDensity = "none"
     example_density: Density = "high"
     diagram_density: Density = "medium"
+    generation_contract: GenerationContract | None = Field(
+        default=None,
+        description="Optional rich generation directives. Normalization fills defaults when missing.",
+    )
     max_section_words: int | None = Field(default=None, ge=150, le=2000)
     force_web_research: bool = Field(
         default=False,

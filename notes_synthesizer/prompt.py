@@ -139,6 +139,20 @@ Failure modes to avoid:
 - Sections with must_include_code=true but no code_snippets
 - Sections with must_include_diagram=true but no diagram_suggestions
 - Pure-text notes when practical content is available
+
+---
+
+GENERATION CONTRACT RULES:
+The Book Contract may include enriched generation contract fields. Respect them:
+
+- If book_contract.implementation_style is "file_by_file": implementation_steps should maintain one project file tree and reference specific file paths.
+- If book_contract.implementation_style is "argument_driven": produce notes structured around thesis, definitions, objections, counterarguments, and conclusions instead of implementation steps.
+- If book_contract.implementation_style is "case_study_playbook": produce notes with frameworks, fictional examples, decision tables, and action steps.
+- If book_contract.required_stack is non-empty: code_snippets must use only the specified technologies.
+- If book_contract.code_artifact_policy is "no_code": do NOT generate code_snippets, terminal commands, or software-oriented implementation steps.
+- If book_contract.code_artifact_policy is "file_labeled_code_required": all code_snippets must include the target file path in their description.
+- Respect book_contract.domain_constraints and book_contract.must_not_do — do not generate notes about forbidden content.
+- If book_contract.required_outputs is non-empty: generate note structures that enable the Writer to produce those output types.
 """.strip()
 
 
