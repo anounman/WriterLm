@@ -43,7 +43,7 @@ def run_assembler(
     latex_output_path: str | Path,
 ) -> AssemblyArtifacts:
     normalized_book = normalize_book_plan(book_plan)
-    normalized_reviewed_sections = normalize_review_bundle(review_bundle)
+    normalized_reviewed_sections = normalize_review_bundle(review_bundle, planner_book=normalized_book)
 
     validate_planner_book(normalized_book)
     validate_reviewed_sections(normalized_reviewed_sections)

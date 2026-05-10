@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections import defaultdict
 
 from planner_agent.schemas import BookPlan
 from reviewer.schemas import ReviewBundle
@@ -79,20 +80,37 @@ def build_front_matter(book: AssemblerPlannerBook) -> AssemblyFrontMatter:
     )
 
 
-def normalize_review_bundle(review_bundle: ReviewBundle) -> list[AssemblerReviewedSection]:
+def normalize_review_bundle(
+    review_bundle: ReviewBundle,
+    planner_book: AssemblerPlannerBook | None = None,
+) -> list[AssemblerReviewedSection]:
+    # Build a lookup of planner section IDs grouped by chapter number so we can
+    # snap reviewer IDs back to the canonical planner ID when the LLM drifted
+    # the section title slightly.
+    planner_sections_by_chapter: dict[int, list[AssemblerPlannerSection]] = defaultdict(list)
+    if planner_book is not None:
+        for chapter in planner_book.chapters:
+            for section in chapter.sections:
+                planner_sections_by_chapter[chapter.chapter_number].append(section)
+
     normalized_sections: list[AssemblerReviewedSection] = []
 
     for result in review_bundle.sections:
         section_input = result.section_input
         section_output = result.section_output
         section_title = _clean_text(section_output.section_title)
+        raw_section_id = _clean_text(section_output.section_id)
+
+        # Attempt to resolve the canonical planner section ID.
+        resolved_id = _resolve_section_id(
+            raw_section_id=raw_section_id,
+            reviewer_title=section_title,
+            planner_sections_by_chapter=planner_sections_by_chapter,
+        )
 
         normalized_sections.append(
             AssemblerReviewedSection(
-                section_id=_canonical_review_section_id(
-                    section_id=_clean_text(section_output.section_id),
-                    section_title=section_title,
-                ),
+                section_id=resolved_id,
                 section_title=section_title,
                 reviewed_content=_normalize_prose(section_output.reviewed_content),
                 review_status=section_output.review_status,
@@ -116,7 +134,75 @@ def build_reviewed_section_map(
     return {section.section_id: section for section in sections}
 
 
+def _resolve_section_id(
+    *,
+    raw_section_id: str,
+    reviewer_title: str,
+    planner_sections_by_chapter: dict[int, list[AssemblerPlannerSection]],
+) -> str:
+    """Return the canonical planner section_id that best matches the reviewer output.
+
+    Strategy:
+    1. Extract the chapter number from the reviewer's raw section_id.
+    2. Among planner sections for that chapter, find the one whose title has the
+       highest token-overlap with the reviewer's (potentially drifted) title.
+    3. If the best match exceeds the minimum overlap threshold, return the
+       planner's canonical section_id (preserving the ground-truth ID).
+    4. Otherwise fall back to rebuilding from the reviewer's own title so that
+       the validator can report a clean mismatch rather than a silent wrong match.
+    """
+    chapter_match = re.search(r"\bchapter-(\d+)\b", raw_section_id)
+    if chapter_match and reviewer_title:
+        chapter_number = int(chapter_match.group(1))
+        planner_sections = planner_sections_by_chapter.get(chapter_number, [])
+        if planner_sections:
+            best_section = _best_title_match(reviewer_title, planner_sections)
+            if best_section is not None:
+                return best_section.section_id
+        # No planner context or no good match – rebuild from reviewer title.
+        return build_section_id(
+            chapter_number=chapter_number,
+            section_title=reviewer_title,
+        )
+    return _normalize_section_id_text(raw_section_id)
+
+
+def _best_title_match(
+    reviewer_title: str,
+    planner_sections: list[AssemblerPlannerSection],
+    min_overlap: float = 0.5,
+) -> AssemblerPlannerSection | None:
+    """Return the planner section whose title best token-overlaps the reviewer title.
+
+    Overlap is computed as:
+        |intersection(reviewer_tokens, planner_tokens)| / |union(reviewer_tokens, planner_tokens)|
+    (Jaccard similarity on lowercased word tokens.)
+    """
+    reviewer_tokens = set(reviewer_title.lower().split())
+    if not reviewer_tokens:
+        return None
+
+    best_section: AssemblerPlannerSection | None = None
+    best_score: float = -1.0
+
+    for section in planner_sections:
+        planner_tokens = set(section.section_title.lower().split())
+        if not planner_tokens:
+            continue
+        intersection = len(reviewer_tokens & planner_tokens)
+        union = len(reviewer_tokens | planner_tokens)
+        score = intersection / union if union else 0.0
+        if score > best_score:
+            best_score = score
+            best_section = section
+
+    if best_score >= min_overlap:
+        return best_section
+    return None
+
+
 def _canonical_review_section_id(*, section_id: str, section_title: str) -> str:
+    """Legacy helper kept for backwards-compat (called from tests). Prefer _resolve_section_id."""
     chapter_match = re.search(r"\bchapter-(\d+)\b", section_id)
     if chapter_match and section_title:
         return build_section_id(
