@@ -127,8 +127,17 @@ class PDFExtractor:
         title_hint: Optional[str],
     ) -> PDFExtractionResult:
         """
-        Parse PDF bytes with PyMuPDF and extract page text.
+        Parse PDF bytes with MarkItDown; fall back to PyMuPDF page extraction.
         """
+        markitdown_result = self._extract_with_markitdown(
+            pdf_bytes=pdf_bytes,
+            source_url=source_url,
+            final_url=final_url,
+            title_hint=title_hint,
+        )
+        if markitdown_result is not None:
+            return markitdown_result
+
         try:
             document = fitz.open(stream=io.BytesIO(pdf_bytes), filetype="pdf")
         except Exception as exc:
@@ -178,6 +187,46 @@ class PDFExtractor:
             )
         finally:
             document.close()
+
+    def _extract_with_markitdown(
+        self,
+        *,
+        pdf_bytes: bytes,
+        source_url: str,
+        final_url: str,
+        title_hint: Optional[str],
+    ) -> Optional[PDFExtractionResult]:
+        """
+        Convert PDF bytes to Markdown text with MarkItDown.
+
+        Returns None on any failure so the caller can fall back to PyMuPDF.
+        MarkItDown has no page boundaries, so `pages` stays empty (all
+        consumers guard on empty pages).
+        """
+        try:
+            from markitdown import MarkItDown
+
+            converted = MarkItDown(enable_plugins=False).convert_stream(
+                io.BytesIO(pdf_bytes), file_extension=".pdf"
+            )
+            text = (converted.text_content or "").strip()
+        except Exception:
+            return None
+
+        if len(text) < self.min_text_chars:
+            return None
+
+        title = getattr(converted, "title", None) or title_hint
+        return PDFExtractionResult(
+            url=source_url,
+            final_url=final_url,
+            title=title,
+            text=text,
+            pages=[],
+            page_count=0,
+            metadata={},
+            extraction_method="markitdown",
+        )
 
     def _normalize_metadata(self, raw_metadata: Mapping[str, Any]) -> dict[str, str]:
         """

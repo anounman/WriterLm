@@ -415,6 +415,14 @@ def main() -> None:
 
     planner_input = DEFAULT_PLANNER_INPUT
 
+    from model_router import maybe_route_models
+
+    routed_models = maybe_route_models(planner_input)
+    if routed_models:
+        write_json(run_dir / "model_routing.json", routed_models)
+        llm_config_summary = resolve_run_llm_config_summary()
+        print(f"Model routing applied: {routed_models}")
+
     planner_workflow = PlannerWorkflow()
     researcher_workflow = build_researcher_workflow(user_urls=planner_input.get("urls"))
     pipeline = PlannerResearchPipeline(

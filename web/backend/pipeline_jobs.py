@@ -246,6 +246,7 @@ def _build_job_environment(
     key_env_map = {
         "google": "GOOGLE_API_KEY",
         "groq": "GROQ_API_KEY",
+        "ollama": "OLLAMA_API_KEY",
         "tavily": "TAVILY_API_KEY",
         "firecrawl": "FIRECRAWL_API_KEY",
     }
@@ -267,6 +268,12 @@ def _build_job_environment(
             "NOTES_GROQ_MODEL": config["notes_groq_model"],
             "WRITER_GROQ_MODEL": config["writer_groq_model"],
             "REVIEWER_GROQ_MODEL": config["reviewer_groq_model"],
+            "PLANNER_OLLAMA_MODEL": config["planner_ollama_model"],
+            "RESEARCHER_OLLAMA_MODEL": config["researcher_ollama_model"],
+            "NOTES_OLLAMA_MODEL": config["notes_ollama_model"],
+            "WRITER_OLLAMA_MODEL": config["writer_ollama_model"],
+            "REVIEWER_OLLAMA_MODEL": config["reviewer_ollama_model"],
+            "WRITERLM_AUTO_MODEL_ROUTING": _bool_env(config.get("auto_model_routing", False)),
             "WRITERLM_PARALLEL_SECTION_PIPELINE": _bool_env(config["parallel_section_pipeline"]),
             "WRITERLM_SECTION_PIPELINE_CONCURRENCY": str(config["section_pipeline_concurrency"]),
             "WRITERLM_COMPILE_LATEX": _bool_env(config["compile_latex"]),
@@ -309,6 +316,7 @@ def _remove_deployment_provider_secrets(env: dict[str, str]) -> None:
         "GOOGLE_AI_API_KEY",
         "GOOGLE_AI_STUDIO_API_KEY",
         "GROQ_API_KEY",
+        "OLLAMA_API_KEY",
         "TAVILY_API_KEY",
         "FIRECRAWL_API_KEY",
         "FIRECRAWL_KEY",
@@ -336,6 +344,8 @@ def _validate_required_keys(
         missing.append("Google/Gemini")
     if config["llm_provider"] == "groq" and "groq" not in api_keys:
         missing.append("Groq")
+    if config["llm_provider"] == "ollama" and "ollama" not in api_keys:
+        missing.append("Ollama")
     if missing:
         raise ValueError("Missing required API keys: " + ", ".join(missing))
 

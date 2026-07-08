@@ -185,6 +185,13 @@ def run_web_pipeline(
     pre_run_risk = estimate_quality_risk(planner_input)
     progress("pre_run_quality", "completed", details=pre_run_risk)
 
+    from model_router import maybe_route_models
+
+    routed_models = maybe_route_models(planner_input)
+    if routed_models:
+        write_json(run_dir / "model_routing.json", routed_models)
+        progress("model_routing", "completed", details=routed_models)
+
     if resume_checkpoint == "book_tex":
         source_book_plan_path = resume_from_dir / "book_plan.json"
         if not source_book_plan_path.exists():

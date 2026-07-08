@@ -10,10 +10,12 @@ from openai import OpenAI
 
 DEFAULT_GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 DEFAULT_GOOGLE_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-DEFAULT_LLM_PROVIDER = "google"
+DEFAULT_OLLAMA_BASE_URL = "https://ollama.com/v1"
+DEFAULT_OLLAMA_LOCAL_BASE_URL = "http://localhost:11434/v1"
+DEFAULT_LLM_PROVIDER = "ollama"
 DEFAULT_HTTP_TIMEOUT_SECONDS = 120.0
 
-SUPPORTED_PROVIDERS = {"groq", "google"}
+SUPPORTED_PROVIDERS = {"groq", "google", "ollama"}
 GOOGLE_API_KEY_ENV_NAMES = (
     "GOOGLE_API_KEY",
     "GEMINI_API_KEY",
@@ -36,27 +38,35 @@ COMMON_LEGACY_MODEL_ENV_NAMES_BY_PROVIDER = {
         "GEMINI_MODEL",
         "GEMINI_MODEL_NAME",
     ),
+    "ollama": ("OLLAMA_MODEL_NAME", "OLLAMA_MODEL"),
 }
+# Ollama cloud picks: structured JSON layers get gpt-oss:120b, long-form prose
+# gets deepseek-v3.1:671b, cheap condensing gets gpt-oss:20b.
 DEFAULT_MODELS_BY_LAYER = {
     "planner": {
         "groq": "openai/gpt-oss-120b",
         "google": "gemini-2.5-flash-lite",
+        "ollama": "gpt-oss:120b",
     },
     "researcher": {
         "groq": "openai/gpt-oss-120b",
         "google": "gemini-2.5-flash-lite",
+        "ollama": "gpt-oss:120b",
     },
     "notes": {
         "groq": "llama-3.3-70b-versatile",
         "google": "gemini-2.5-flash-lite",
+        "ollama": "gpt-oss:20b",
     },
     "writer": {
         "groq": "llama-3.3-70b-versatile",
         "google": "gemma-3-27b-it",
+        "ollama": "deepseek-v3.1:671b",
     },
     "reviewer": {
         "groq": "openai/gpt-oss-120b",
         "google": "gemini-2.5-flash-lite",
+        "ollama": "gpt-oss:120b",
     },
 }
 
@@ -144,6 +154,11 @@ def _resolve_api_key(provider: str) -> str:
             raise ValueError("GROQ_API_KEY not found in environment variables.")
         return api_key
 
+    if provider == "ollama":
+        # Local Ollama needs no key; the OpenAI SDK still requires a non-empty
+        # string, so fall back to a placeholder when none is configured.
+        return _first_non_empty(("OLLAMA_API_KEY",)) or "ollama"
+
     api_key = _first_non_empty(GOOGLE_API_KEY_ENV_NAMES)
     if not api_key:
         env_names = ", ".join(GOOGLE_API_KEY_ENV_NAMES)
@@ -162,6 +177,15 @@ def _resolve_base_url(layer: str, provider: str) -> str:
             _first_non_empty((f"{layer_key}_LLM_BASE_URL", "GROQ_BASE_URL"))
             or DEFAULT_GROQ_BASE_URL
         )
+
+    if provider == "ollama":
+        explicit = _first_non_empty((f"{layer_key}_LLM_BASE_URL", "OLLAMA_BASE_URL"))
+        if explicit:
+            return explicit
+        # Cloud when a key is set, local daemon otherwise.
+        if _first_non_empty(("OLLAMA_API_KEY",)):
+            return DEFAULT_OLLAMA_BASE_URL
+        return DEFAULT_OLLAMA_LOCAL_BASE_URL
 
     return (
         _first_non_empty(

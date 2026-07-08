@@ -26,7 +26,7 @@ At its core, WriterLM orchestrates a multi-stage workflow where highly specializ
 - **Backend / Orchestration**: FastAPI, SQLAlchemy, PostgreSQL
 - **Frontend / Studio**: Vite, React, Clerk (Authentication)
 - **Infrastructure**: Docker, Docker Compose
-- **LLM Integrations**: Flexible provider support (Google Gemini, Groq, OpenAI) tailored per pipeline stage.
+- **LLM Integrations**: Flexible provider support (Ollama cloud/local — default, Google Gemini, Groq) tailored per pipeline stage, with optional LLM-driven per-stage model routing (`WRITERLM_AUTO_MODEL_ROUTING=1`). Image generation stays on Google Gemini.
 
 ---
 

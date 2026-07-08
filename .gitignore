@@ -27,3 +27,5 @@ web/frontend/design-system/
 inputs/pdfs/*.pdf
 .agent/*
 .codex/*
+.venv/*
+.venv311/*

@@ -1,11 +1,27 @@
 from __future__ import annotations
 
+import os
+from concurrent.futures import ThreadPoolExecutor
+
 from pydantic import BaseModel, Field
 
 from planner_agent.schemas import BookPlan
 from researcher.schemas import PlannerSectionRef, SectionResearchPacket
 from researcher.state import ResearcherState
 from researcher.workflow import ResearcherWorkflow
+
+
+def _research_concurrency() -> int:
+    for name in ("WRITERLM_RESEARCH_CONCURRENCY", "RESEARCH_CONCURRENCY"):
+        value = os.getenv(name)
+        if value and value.strip():
+            try:
+                parsed = int(value)
+            except ValueError:
+                continue
+            if parsed > 0:
+                return parsed
+    return 4
 
 
 class ChapterResearchBundle(BaseModel):
@@ -62,17 +78,43 @@ class PlannerResearchPipeline:
         all_warnings: list[str] = []
         all_errors: list[str] = []
 
+        # Flatten sections so research runs in parallel across the whole book,
+        # then regroup results in original order.
+        jobs = [
+            (chapter, section)
+            for chapter in book_plan.chapters
+            for section in chapter.sections
+        ]
+        max_workers = max(1, _research_concurrency())
+
+        def research_one(job):
+            chapter, section = job
+            planner_section = self._build_planner_section_ref(
+                chapter=chapter,
+                section=section,
+            )
+            state = ResearcherState(planner_section=planner_section)
+            try:
+                return self.researcher_workflow.run(state)
+            except Exception as exc:
+                failed_state = ResearcherState(planner_section=planner_section)
+                failed_state.errors.append(f"Researcher workflow raised: {exc}")
+                return failed_state
+
+        if max_workers == 1 or len(jobs) <= 1:
+            final_states = [research_one(job) for job in jobs]
+        else:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                final_states = list(executor.map(research_one, jobs))
+
+        # jobs was built in chapter/section order, so results align positionally.
+        state_iter = iter(final_states)
+
         for chapter in book_plan.chapters:
             chapter_packets: list[SectionResearchPacket] = []
 
             for section in chapter.sections:
-                planner_section = self._build_planner_section_ref(
-                    chapter=chapter,
-                    section=section,
-                )
-
-                state = ResearcherState(planner_section=planner_section)
-                final_state = self.researcher_workflow.run(state)
+                final_state = next(state_iter)
 
                 all_warnings.extend(
                     self._prefix_messages(

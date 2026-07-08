@@ -6,8 +6,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
-ApiKeyProvider = Literal["google", "groq", "tavily", "firecrawl"]
-Provider = Literal["google", "groq"]
+ApiKeyProvider = Literal["google", "groq", "ollama", "tavily", "firecrawl"]
+Provider = Literal["google", "groq", "ollama"]
 Density = Literal["high", "medium", "low"]
 CodeDensity = Literal["none", "high", "medium", "low"]
 LatexEngine = Literal["pdflatex", "xelatex", "lualatex"]
@@ -88,6 +88,12 @@ class PipelineConfig(BaseModel):
     notes_groq_model: str = "llama-3.3-70b-versatile"
     writer_groq_model: str = "llama-3.3-70b-versatile"
     reviewer_groq_model: str = "openai/gpt-oss-120b"
+    planner_ollama_model: str = "gpt-oss:120b"
+    researcher_ollama_model: str = "gpt-oss:120b"
+    notes_ollama_model: str = "gpt-oss:20b"
+    writer_ollama_model: str = "deepseek-v3.1:671b"
+    reviewer_ollama_model: str = "gpt-oss:120b"
+    auto_model_routing: bool = False
     parallel_section_pipeline: bool = True
     section_pipeline_concurrency: int = Field(default=2, ge=1, le=12)
     compile_latex: bool = True

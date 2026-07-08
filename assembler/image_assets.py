@@ -198,10 +198,7 @@ def _try_google_generated_image(
     prompt: str,
     assets_dir: Path,
 ) -> tuple[ImageAsset | None, str | None]:
-    provider = os.getenv("LLM_PROVIDER", "google").strip().lower()
-    if provider not in {"google", "gemini", "google_ai", "google-ai"}:
-        return None, None
-
+    # Image generation always uses Google, independent of the text LLM provider.
     api_key = _first_env("GOOGLE_API_KEY", "GEMINI_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_AI_STUDIO_API_KEY")
     if not api_key:
         return None, "Google key missing; skipped generated image."

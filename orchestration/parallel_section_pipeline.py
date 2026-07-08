@@ -33,7 +33,7 @@ from writer.state import WriterInput, WriterSectionTask, WriterState
 
 @dataclass(frozen=True)
 class ParallelSectionPipelineConfig:
-    max_workers: int = 2
+    max_workers: int = 4
 
     @classmethod
     def from_env(cls) -> "ParallelSectionPipelineConfig":
@@ -41,7 +41,7 @@ class ParallelSectionPipelineConfig:
             max_workers=_read_positive_int_env(
                 "WRITERLM_SECTION_PIPELINE_CONCURRENCY",
                 "SECTION_PIPELINE_CONCURRENCY",
-                default=2,
+                default=4,
             )
         )
 

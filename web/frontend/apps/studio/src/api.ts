@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-export type ApiKeyProvider = "google" | "groq" | "tavily" | "firecrawl";
+export type ApiKeyProvider = "google" | "groq" | "ollama" | "tavily" | "firecrawl";
 export type JobStatus =
   | "queued"
   | "running"
@@ -29,7 +29,7 @@ export interface ApiKeyRecord {
 }
 
 export interface PipelineConfig {
-  llm_provider: "google" | "groq";
+  llm_provider: "google" | "groq" | "ollama";
   planner_google_model: string;
   researcher_google_model: string;
   notes_google_model: string;
@@ -40,6 +40,12 @@ export interface PipelineConfig {
   notes_groq_model: string;
   writer_groq_model: string;
   reviewer_groq_model: string;
+  planner_ollama_model: string;
+  researcher_ollama_model: string;
+  notes_ollama_model: string;
+  writer_ollama_model: string;
+  reviewer_ollama_model: string;
+  auto_model_routing: boolean;
   parallel_section_pipeline: boolean;
   section_pipeline_concurrency: number;
   compile_latex: boolean;
@@ -363,7 +369,7 @@ export class ApiClient {
     return this.request<PipelineConfig>("/config");
   }
 
-  providerModels(provider: "google" | "groq") {
+  providerModels(provider: "google" | "groq" | "ollama") {
     return this.request<ProviderModel[]>(`/models/${provider}`);
   }
 

@@ -93,13 +93,13 @@ function Row({ label, description, children }: { label: string; description?: st
 export function ConfigPage({ api, onNotice }: ConfigPageProps) {
   const [config, setConfig] = useState<PipelineConfig | null>(null);
   const [saving, setSaving] = useState(false);
-  const [models, setModels] = useState<{ google: ProviderModel[]; groq: ProviderModel[] }>({ google: [], groq: [] });
-  const [loadingModels, setLoadingModels] = useState<{ google: boolean; groq: boolean }>({ google: false, groq: false });
-  const [modelErrors, setModelErrors] = useState<{ google: string | null; groq: string | null }>({ google: null, groq: null });
+  const [models, setModels] = useState<{ google: ProviderModel[]; groq: ProviderModel[]; ollama: ProviderModel[] }>({ google: [], groq: [], ollama: [] });
+  const [loadingModels, setLoadingModels] = useState<{ google: boolean; groq: boolean; ollama: boolean }>({ google: false, groq: false, ollama: false });
+  const [modelErrors, setModelErrors] = useState<{ google: string | null; groq: string | null; ollama: string | null }>({ google: null, groq: null, ollama: null });
 
   useEffect(() => { api.config().then(setConfig).catch(e => onNotice(friendlyApiErrorMessage(e, "Failed to load config."))); }, []);
 
-  async function loadModels(provider: "google" | "groq") {
+  async function loadModels(provider: "google" | "groq" | "ollama") {
     setLoadingModels(prev => ({ ...prev, [provider]: true }));
     setModelErrors(prev => ({ ...prev, [provider]: null }));
     try {
@@ -116,6 +116,7 @@ export function ConfigPage({ api, onNotice }: ConfigPageProps) {
   useEffect(() => {
     loadModels("google");
     loadModels("groq");
+    loadModels("ollama");
   }, [api]);
 
   async function save() {
@@ -153,12 +154,16 @@ export function ConfigPage({ api, onNotice }: ConfigPageProps) {
           <Section icon={SlidersHorizontal} title="Provider Routing" subtitle="Configure LLM inference and research strategy">
             <Row label="Default LLM provider">
               <div className="flex bg-secondary border border-border rounded-md p-0.5 gap-0.5">
-                {["google", "groq"].map(opt => (
+                {["google", "groq", "ollama"].map(opt => (
                   <button key={opt} onClick={() => upd({ llm_provider: opt as any })}
                     className={`px-4 py-1 text-xs font-medium rounded-sm transition-colors capitalize cursor-pointer ${config.llm_provider === opt ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
                   >{opt}</button>
                 ))}
               </div>
+            </Row>
+
+            <Row label="Automatic model routing" description="Let an LLM pick the best model per stage for your book's domain">
+              <Toggle checked={config.auto_model_routing} onChange={v => upd({ auto_model_routing: v })} />
             </Row>
 
             <Row label="Research profile" description="Controls how much research effort is applied">
@@ -269,6 +274,20 @@ export function ConfigPage({ api, onNotice }: ConfigPageProps) {
                 <ModelSelect label="Notes" value={config.notes_groq_model} models={models.groq} loading={loadingModels.groq} onChange={v => upd({ notes_groq_model: v })} />
                 <ModelSelect label="Writer" value={config.writer_groq_model} models={models.groq} loading={loadingModels.groq} onChange={v => upd({ writer_groq_model: v })} />
                 <ModelSelect label="Reviewer" value={config.reviewer_groq_model} models={models.groq} loading={loadingModels.groq} onChange={v => upd({ reviewer_groq_model: v })} />
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ollama</p>
+                  <button type="button" onClick={() => loadModels("ollama")} className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                    {loadingModels.ollama ? "Loading..." : "Refresh"}
+                  </button>
+                </div>
+                {modelErrors.ollama && <p className="text-[11px] text-red-300 leading-relaxed">{modelErrors.ollama}</p>}
+                <ModelSelect label="Planner" value={config.planner_ollama_model} models={models.ollama} loading={loadingModels.ollama} onChange={v => upd({ planner_ollama_model: v })} />
+                <ModelSelect label="Researcher" value={config.researcher_ollama_model} models={models.ollama} loading={loadingModels.ollama} onChange={v => upd({ researcher_ollama_model: v })} />
+                <ModelSelect label="Notes" value={config.notes_ollama_model} models={models.ollama} loading={loadingModels.ollama} onChange={v => upd({ notes_ollama_model: v })} />
+                <ModelSelect label="Writer" value={config.writer_ollama_model} models={models.ollama} loading={loadingModels.ollama} onChange={v => upd({ writer_ollama_model: v })} />
+                <ModelSelect label="Reviewer" value={config.reviewer_ollama_model} models={models.ollama} loading={loadingModels.ollama} onChange={v => upd({ reviewer_ollama_model: v })} />
               </div>
             </div>
           </div>

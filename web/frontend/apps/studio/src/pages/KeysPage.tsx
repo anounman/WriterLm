@@ -11,6 +11,7 @@ interface KeysPageProps {
 const PROVIDERS: { id: ApiKeyProvider; label: string; hint: string }[] = [
   { id: "google",    label: "Google AI",  hint: "Used for Gemini models (planner, writer, researcher)" },
   { id: "groq",      label: "Groq",       hint: "Used for fast LLM inference (Llama, Mixtral)" },
+  { id: "ollama",    label: "Ollama",     hint: "Ollama cloud API key (ollama.com) for cloud models" },
   { id: "tavily",    label: "Tavily",     hint: "Used for web research search results" },
   { id: "firecrawl", label: "Firecrawl", hint: "Used for web scraping and content extraction" },
 ];

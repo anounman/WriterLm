@@ -30,7 +30,7 @@ def _patched_env(updates: dict[str, str | None]):
                 os.environ[key] = value
 
 
-def test_provider_defaults_to_google() -> None:
+def test_provider_defaults_to_ollama() -> None:
     with _patched_env(
         {
             "LLM_PROVIDER": None,
@@ -40,7 +40,12 @@ def test_provider_defaults_to_google() -> None:
             "GROQ_MODEL": None,
             "PLANNER_GROQ_MODEL": None,
             "PLANNER_GOOGLE_MODEL": None,
-            "GOOGLE_API_KEY": "test-google-key",
+            "PLANNER_OLLAMA_MODEL": None,
+            "OLLAMA_API_KEY": None,
+            "OLLAMA_BASE_URL": None,
+            "OLLAMA_MODEL": None,
+            "OLLAMA_MODEL_NAME": None,
+            "GOOGLE_API_KEY": None,
             "GEMINI_API_KEY": None,
             "GOOGLE_AI_API_KEY": None,
             "GOOGLE_AI_STUDIO_API_KEY": None,
@@ -53,15 +58,43 @@ def test_provider_defaults_to_google() -> None:
     ):
         config = resolve_openai_compatible_config(
             layer="planner",
-            default_models={"groq": "openai/gpt-oss-120b", "google": "gemini-2.5-flash"},
+            default_models={
+                "groq": "openai/gpt-oss-120b",
+                "google": "gemini-2.5-flash",
+                "ollama": "gpt-oss:120b",
+            },
             legacy_env_names=("GROQ_MODEL_NAME", "GROQ_MODEL", "GOOGLE_MODEL_NAME", "GOOGLE_MODEL"),
         )
 
-        assert resolve_llm_provider("planner") == "google"
-        assert config.provider == "google"
-        assert config.api_key == "test-google-key"
-        assert config.base_url == "https://generativelanguage.googleapis.com/v1beta/openai/"
-        assert config.model == "gemini-2.5-flash"
+        assert resolve_llm_provider("planner") == "ollama"
+        assert config.provider == "ollama"
+        # No key configured -> local daemon with SDK placeholder key.
+        assert config.api_key == "ollama"
+        assert config.base_url == "http://localhost:11434/v1"
+        assert config.model == "gpt-oss:120b"
+
+
+def test_ollama_cloud_when_key_present() -> None:
+    with _patched_env(
+        {
+            "LLM_PROVIDER": "ollama",
+            "PLANNER_LLM_PROVIDER": None,
+            "PLANNER_OLLAMA_MODEL": None,
+            "OLLAMA_API_KEY": "test-ollama-key",
+            "OLLAMA_BASE_URL": None,
+            "OLLAMA_MODEL": None,
+            "OLLAMA_MODEL_NAME": None,
+            "LLM_MODEL": None,
+        }
+    ):
+        config = resolve_openai_compatible_config(
+            layer="planner",
+            default_models={"ollama": "gpt-oss:120b"},
+        )
+
+        assert config.provider == "ollama"
+        assert config.api_key == "test-ollama-key"
+        assert config.base_url == "https://ollama.com/v1"
 
 
 def test_global_groq_provider_uses_groq_credentials() -> None:

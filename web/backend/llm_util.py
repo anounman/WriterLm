@@ -9,7 +9,7 @@ from web.backend.normalization import normalize_book_request
 from web.backend.pipeline_jobs import get_or_create_user_config, _api_keys_by_provider
 from web.backend.schemas import BookRequest
 
-from llm_provider import build_openai_client, DEFAULT_GOOGLE_BASE_URL, DEFAULT_GROQ_BASE_URL, json_response_format_kwargs
+from llm_provider import build_openai_client, DEFAULT_GOOGLE_BASE_URL, DEFAULT_GROQ_BASE_URL, DEFAULT_OLLAMA_BASE_URL, json_response_format_kwargs
 
 
 SYSTEM_PROMPT = """\
@@ -377,10 +377,17 @@ def parse_user_prompt(db: Session, user: User, prompt: str) -> dict[str, Any]:
             model = "gemini-2.5-flash-lite"
         elif provider == "groq":
             model = "openai/gpt-oss-120b"
+        elif provider == "ollama":
+            model = "gpt-oss:120b"
         else:
             raise ValueError(f"Unknown provider: {provider}")
 
-    base_url = DEFAULT_GOOGLE_BASE_URL if provider == "google" else DEFAULT_GROQ_BASE_URL
+    base_urls = {
+        "google": DEFAULT_GOOGLE_BASE_URL,
+        "groq": DEFAULT_GROQ_BASE_URL,
+        "ollama": DEFAULT_OLLAMA_BASE_URL,
+    }
+    base_url = base_urls[provider]
     
     client = build_openai_client(api_key=api_key, base_url=base_url)
     
