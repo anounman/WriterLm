@@ -243,6 +243,13 @@ def _build_job_environment(
     api_keys = _api_keys_by_provider(db, user=user)
     _remove_deployment_provider_secrets(env)
 
+    # The worker must write job progress to the same database the backend
+    # reads. Pass the backend's resolved URL so a stale DATABASE_URL from a
+    # dotenv file can't point the worker at a different database.
+    from web.backend.database import DATABASE_URL as BACKEND_DATABASE_URL
+
+    env["DATABASE_URL"] = BACKEND_DATABASE_URL
+
     key_env_map = {
         "google": "GOOGLE_API_KEY",
         "groq": "GROQ_API_KEY",
