@@ -9,7 +9,7 @@ from web.backend.normalization import normalize_book_request
 from web.backend.pipeline_jobs import get_or_create_user_config, _api_keys_by_provider
 from web.backend.schemas import BookRequest
 
-from llm_provider import build_openai_client, DEFAULT_GOOGLE_BASE_URL, DEFAULT_GROQ_BASE_URL, DEFAULT_OLLAMA_BASE_URL, json_response_format_kwargs
+from llm_provider import build_openai_client, DEFAULT_GOOGLE_BASE_URL, DEFAULT_GROQ_BASE_URL, DEFAULT_OLLAMA_BASE_URL, DEFAULT_OLLAMA_LOCAL_BASE_URL, json_response_format_kwargs
 
 
 SYSTEM_PROMPT = """\
@@ -363,10 +363,12 @@ def parse_user_prompt(db: Session, user: User, prompt: str) -> dict[str, Any]:
     config = get_or_create_user_config(db, user)
     settings = config.settings or {}
     
-    provider = settings.get("llm_provider", "google")
+    provider = settings.get("llm_provider", "ollama")
     api_keys = _api_keys_by_provider(db, user=user)
-    
+
     api_key = api_keys.get(provider)
+    if not api_key and provider == "ollama":
+        api_key = "ollama"  # local daemon needs no key; SDK still wants a non-empty string
     if not api_key:
         raise ValueError(f"Missing API key for provider: {provider}")
 
@@ -385,7 +387,8 @@ def parse_user_prompt(db: Session, user: User, prompt: str) -> dict[str, Any]:
     base_urls = {
         "google": DEFAULT_GOOGLE_BASE_URL,
         "groq": DEFAULT_GROQ_BASE_URL,
-        "ollama": DEFAULT_OLLAMA_BASE_URL,
+        # Cloud when the user saved an Ollama key, local daemon otherwise.
+        "ollama": DEFAULT_OLLAMA_BASE_URL if api_keys.get("ollama") else DEFAULT_OLLAMA_LOCAL_BASE_URL,
     }
     base_url = base_urls[provider]
     

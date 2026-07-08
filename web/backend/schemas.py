@@ -77,7 +77,7 @@ class ApiKeyOut(BaseModel):
 
 
 class PipelineConfig(BaseModel):
-    llm_provider: Provider = "google"
+    llm_provider: Provider = "ollama"
     planner_google_model: str = "gemini-2.5-flash-lite"
     researcher_google_model: str = "gemini-2.5-flash-lite"
     notes_google_model: str = "gemini-2.5-flash-lite"

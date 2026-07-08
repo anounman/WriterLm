@@ -750,18 +750,25 @@ def _fetch_groq_models(api_key: str) -> list[ProviderModelOut]:
     return sorted(models, key=lambda model: model.id)
 
 
-def _fetch_ollama_models(api_key: str) -> list[ProviderModelOut]:
+def _fetch_ollama_models(api_key: str | None) -> list[ProviderModelOut]:
+    from llm_provider import DEFAULT_OLLAMA_BASE_URL, DEFAULT_OLLAMA_LOCAL_BASE_URL
+
+    if api_key:
+        url = f"{DEFAULT_OLLAMA_BASE_URL}/models"
+        headers = {"Authorization": f"Bearer {api_key}"}
+        error_hint = "Check your Ollama API key."
+    else:
+        url = f"{DEFAULT_OLLAMA_LOCAL_BASE_URL}/models"
+        headers = {}
+        error_hint = "Is a local Ollama daemon running (ollama serve)?"
+
     try:
-        response = httpx.get(
-            "https://ollama.com/v1/models",
-            headers={"Authorization": f"Bearer {api_key}"},
-            timeout=15,
-        )
+        response = httpx.get(url, headers=headers, timeout=15)
         response.raise_for_status()
     except httpx.HTTPStatusError as exc:
-        raise HTTPException(status_code=502, detail="Ollama model list could not be loaded. Check your Ollama API key.") from exc
+        raise HTTPException(status_code=502, detail=f"Ollama model list could not be loaded. {error_hint}") from exc
     except httpx.HTTPError as exc:
-        raise HTTPException(status_code=502, detail="Ollama model list could not be loaded right now.") from exc
+        raise HTTPException(status_code=502, detail=f"Ollama model list could not be loaded right now. {error_hint}") from exc
 
     models = []
     for item in response.json().get("data", []):
@@ -876,12 +883,13 @@ def list_provider_models(provider: str, user: User = Depends(current_user), db: 
     if provider not in {"google", "groq", "ollama"}:
         raise HTTPException(status_code=404, detail="Provider does not expose LLM models.")
     api_key = _api_keys_by_provider(db, user=user).get(provider)
+    if provider == "ollama":
+        # Local daemon needs no key; only cloud (ollama.com) does.
+        return _fetch_ollama_models(api_key)
     if not api_key:
         raise HTTPException(status_code=400, detail=f"Save a {provider.title()} API key before loading models.")
     if provider == "google":
         return _fetch_google_models(api_key)
-    if provider == "ollama":
-        return _fetch_ollama_models(api_key)
     return _fetch_groq_models(api_key)
 
 
